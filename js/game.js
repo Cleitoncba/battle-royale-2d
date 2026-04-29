@@ -143,6 +143,10 @@ function createPlayer() {
     lastShot: 0,
     fireRate: 320,
     color: "#38bdf8",
+
+    // Ângulo oficial da mira/arma.
+    // 0 significa apontando para a direita.
+    aimAngle: 0,
   };
 }
 
@@ -236,6 +240,22 @@ function updateMouseWorldPosition() {
   mouse.worldX = mouse.x + camera.x;
   mouse.worldY = mouse.y + camera.y;
 }
+// Atualiza o ângulo oficial da arma do jogador.
+// Esse ângulo será usado tanto para desenhar o canhão quanto para atirar.
+function updatePlayerAimAngle() {
+  if (!player) return;
+
+  const isMobile = window.innerWidth <= 900;
+
+  if (isMobile) {
+    player.aimAngle = mobileAim.angle;
+  } else {
+    player.aimAngle = Math.atan2(
+      mouse.worldY - player.y,
+      mouse.worldX - player.x
+    );
+  }
+}
 // Atualiza o ponto da mira mobile com base no ângulo atual.
 function updateMobileAimPosition() {
   mobileAim.worldX = player.x + Math.cos(mobileAim.angle) * 250;
@@ -301,20 +321,27 @@ function shootBullet(owner, targetX, targetY) {
     owner.lastShot = now;
   }
 
-  const angle = Math.atan2(targetY - owner.y, targetX - owner.x);
+ // Se quem está atirando for o jogador, usa o ângulo oficial da arma.
+// Se for bot, calcula normalmente mirando no alvo.
+const angle = owner === player
+  ? player.aimAngle
+  : Math.atan2(targetY - owner.y, targetX - owner.x);
 
-  bullets.push({
-    x: owner.x,
-    y: owner.y,
-    radius: 5,
-    speed: owner === player ? 6.5 : 4.5,
-    damage: owner === player ? 24 : BOT_BULLET_DAMAGE,
-    vx: Math.cos(angle),
-    vy: Math.sin(angle),
-    owner,
-    life: 90,
-    color: owner === player ? "#facc15" : "#fb7185",
-  });
+// Faz o tiro sair da ponta do canhão, não do centro do personagem.
+const barrelLength = owner === player ? 34 : 22;
+
+bullets.push({
+  x: owner.x + Math.cos(angle) * barrelLength,
+  y: owner.y + Math.sin(angle) * barrelLength,
+  radius: 5,
+  speed: owner === player ? 6.5 : 4.5,
+  damage: owner === player ? 24 : BOT_BULLET_DAMAGE,
+  vx: Math.cos(angle),
+  vy: Math.sin(angle),
+  owner,
+  life: 90,
+  color: owner === player ? "#facc15" : "#fb7185",
+});
 }
 
 // Movimento do jogador
@@ -477,8 +504,8 @@ function updateCamera() {
 
   updateMouseWorldPosition();
   updateMobileAimPosition();
+  updatePlayerAimAngle();
 }
-
 // Atualiza HUD
 function updateHUD() {
   healthText.textContent = Math.max(0, Math.floor(player.health));
@@ -603,31 +630,48 @@ function drawCharacter(entity, isPlayer = false) {
   );
 
   if (isPlayer) {
-  // No celular, usa a mira mobile.
-  // No PC, usa a mira do mouse.
+  // Usa o mesmo ângulo oficial para desenhar o canhão e para atirar.
+  const angle = player.aimAngle;
   const isMobile = window.innerWidth <= 900;
 
-  const angle = isMobile
-    ? mobileAim.angle
-    : Math.atan2(mouse.worldY - player.y, mouse.worldX - player.x);
+  const barrelLength = 34;
+  const barrelStart = 8;
 
+  // Canhão/arma
   ctx.strokeStyle = "#e0f2fe";
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+
   ctx.beginPath();
-  ctx.moveTo(screenX, screenY);
+  ctx.moveTo(
+    screenX + Math.cos(angle) * barrelStart,
+    screenY + Math.sin(angle) * barrelStart
+  );
   ctx.lineTo(
-    screenX + Math.cos(angle) * 34,
-    screenY + Math.sin(angle) * 34
+    screenX + Math.cos(angle) * barrelLength,
+    screenY + Math.sin(angle) * barrelLength
   );
   ctx.stroke();
 
-  // Pequeno ponto indicando a direção da mira no celular
+  // Ponta do canhão
+  ctx.fillStyle = "#f8fafc";
+  ctx.beginPath();
+  ctx.arc(
+    screenX + Math.cos(angle) * barrelLength,
+    screenY + Math.sin(angle) * barrelLength,
+    4,
+    0,
+    Math.PI * 2
+  );
+  ctx.fill();
+
+  // Pequeno ponto indicando direção da mira no celular
   if (isMobile) {
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
     ctx.beginPath();
     ctx.arc(
-      screenX + Math.cos(angle) * 58,
-      screenY + Math.sin(angle) * 58,
+      screenX + Math.cos(angle) * 62,
+      screenY + Math.sin(angle) * 62,
       5,
       0,
       Math.PI * 2
@@ -716,6 +760,7 @@ canvas.addEventListener("mousedown", () => {
   mouse.down = true;
 
   if (gameRunning) {
+    updatePlayerAimAngle();
     shootBullet(player, mouse.worldX, mouse.worldY);
   }
 });
@@ -833,8 +878,13 @@ joystickArea.addEventListener("pointercancel", (event) => {
 function mobileShoot() {
   if (!gameRunning) return;
 
-  // Atira para onde a arma está apontando no celular.
-  shootBullet(player, mobileAim.worldX, mobileAim.worldY);
+  // O alvo aqui é só uma referência.
+  // A função shootBullet vai usar player.aimAngle quando o dono for o jogador.
+  shootBullet(
+    player,
+    player.x + Math.cos(player.aimAngle) * 250,
+    player.y + Math.sin(player.aimAngle) * 250
+  );
 }
 
 // Botão mobile de tiro
