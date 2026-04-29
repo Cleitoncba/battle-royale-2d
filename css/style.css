@@ -212,8 +212,8 @@ body {
 
 .action-buttons button {
   width: 112px;
-  height: 54px;
-  font-size: 15px;
+  height: 50px;
+  font-size: 14px;
 }
 
 /* Em telas menores, mostra os controles mobile */

@@ -18,12 +18,14 @@ const ammoText = document.getElementById("ammoText");
 const killsText = document.getElementById("killsText");
 const botsText = document.getElementById("botsText");
 const zoneText = document.getElementById("zoneText");
+const medkitsText = document.getElementById("medkitsText");
 
 const endTitle = document.getElementById("endTitle");
 const endMessage = document.getElementById("endMessage");
 
 const mobileShootButton = document.getElementById("mobileShootButton");
 const mobileReloadButton = document.getElementById("mobileReloadButton");
+const mobileHealButton = document.getElementById("mobileHealButton");
 const joystickArea = document.getElementById("joystickArea");
 const joystickBase = document.getElementById("joystickBase");
 const joystickStick = document.getElementById("joystickStick");
@@ -103,6 +105,9 @@ const PLAYER_MAX_AMMO = 12;
 const BOT_BULLET_DAMAGE = 4;
 const ZONE_DAMAGE_PLAYER = 0.025;
 const ZONE_DAMAGE_BOT = 0.02;
+const HEAL_AMOUNT = 35;
+const HEAL_TIME = 900;
+const START_MEDKITS = 2;
 
 // Ajusta o canvas ao tamanho da tela
 function resizeCanvas() {
@@ -138,6 +143,8 @@ function createPlayer() {
     health: PLAYER_MAX_HEALTH,
     ammo: PLAYER_MAX_AMMO,
     maxAmmo: PLAYER_MAX_AMMO,
+    medkits: START_MEDKITS,
+    healing: false,
     reloadTime: 900,
     reloading: false,
     lastShot: 0,
@@ -281,6 +288,30 @@ function findNearestBot() {
   });
 
   return nearestBot;
+}
+// Usa um kit médico para recuperar vida.
+// Tem um pequeno tempo de uso para não ficar instantâneo demais.
+function useMedkit() {
+  if (!gameRunning || !player) return;
+
+  // Não deixa curar se já estiver curando.
+  if (player.healing) return;
+
+  // Não cura se não tiver kit.
+  if (player.medkits <= 0) return;
+
+  // Não gasta kit se a vida já estiver cheia.
+  if (player.health >= PLAYER_MAX_HEALTH) return;
+
+  player.healing = true;
+
+  setTimeout(() => {
+    if (!gameRunning || !player) return;
+
+    player.health = Math.min(PLAYER_MAX_HEALTH, player.health + HEAL_AMOUNT);
+    player.medkits -= 1;
+    player.healing = false;
+  }, HEAL_TIME);
 }
 // Recarrega arma
 function reloadWeapon() {
@@ -508,10 +539,14 @@ function updateCamera() {
 }
 // Atualiza HUD
 function updateHUD() {
-  healthText.textContent = Math.max(0, Math.floor(player.health));
+  healthText.textContent = player.healing
+  ? "curando..."
+  : Math.max(0, Math.floor(player.health));
+
   ammoText.textContent = player.reloading ? "..." : player.ammo;
   killsText.textContent = kills;
   botsText.textContent = bots.length;
+  medkitsText.textContent = player.medkits;
 
   const zonePercent = Math.floor((safeZone.radius / 760) * 100);
   zoneText.textContent = `${Math.max(0, zonePercent)}%`;
@@ -738,6 +773,9 @@ window.addEventListener("keydown", (event) => {
   if (key === "r" && gameRunning) {
     reloadWeapon();
   }
+  if (key === "h" && gameRunning) {
+  useMedkit();
+}
 });
 
 window.addEventListener("keyup", (event) => {
@@ -904,6 +942,17 @@ mobileReloadButton.addEventListener("pointerdown", (event) => {
   event.preventDefault();
   event.stopPropagation();
   mobileReload();
+});
+// Botão mobile de cura
+function mobileHeal() {
+  if (!gameRunning) return;
+  useMedkit();
+}
+
+mobileHealButton.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  mobileHeal();
 });
 /// ===============================
 // MIRA MOBILE COM MULTI-TOQUE
