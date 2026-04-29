@@ -24,6 +24,9 @@ const endMessage = document.getElementById("endMessage");
 
 const mobileShootButton = document.getElementById("mobileShootButton");
 const mobileReloadButton = document.getElementById("mobileReloadButton");
+const joystickArea = document.getElementById("joystickArea");
+const joystickBase = document.getElementById("joystickBase");
+const joystickStick = document.getElementById("joystickStick");
 
 // Tamanho do mundo do jogo
 const WORLD_WIDTH = 2400;
@@ -39,6 +42,18 @@ const keys = {
   a: false,
   s: false,
   d: false,
+};
+
+// Estado do joystick mobile.
+// x e y variam de -1 até 1.
+const joystick = {
+  active: false,
+  pointerId: null,
+  centerX: 0,
+  centerY: 0,
+  x: 0,
+  y: 0,
+  maxDistance: 42,
 };
 
 // Mouse/mira
@@ -305,12 +320,21 @@ function shootBullet(owner, targetX, targetY) {
 // Movimento do jogador
 function updatePlayer() {
   let dx = 0;
-  let dy = 0;
+let dy = 0;
 
+// No PC, usa teclado.
+// No celular, usa joystick.
+const isMobile = window.innerWidth <= 900;
+
+if (isMobile) {
+  dx = joystick.x;
+  dy = joystick.y;
+} else {
   if (keys.w) dy -= 1;
   if (keys.s) dy += 1;
   if (keys.a) dx -= 1;
   if (keys.d) dx += 1;
+}
 
   // Normaliza movimento diagonal
   if (dx !== 0 || dy !== 0) {
@@ -704,27 +728,104 @@ canvas.addEventListener("mouseup", () => {
 startButton.addEventListener("click", startGame);
 restartButton.addEventListener("click", startGame);
 
-// Controles mobile de movimento
-document.querySelectorAll(".movement-buttons button").forEach((button) => {
-  const key = button.dataset.key;
+// ===============================
+// JOYSTICK MOBILE
+// ===============================
 
-  button.addEventListener("touchstart", (event) => {
-    event.preventDefault();
-    keys[key] = true;
-  });
+// Retorna a posição central da base do joystick na tela.
+function getJoystickCenter() {
+  const rect = joystickBase.getBoundingClientRect();
 
-  button.addEventListener("touchend", (event) => {
-    event.preventDefault();
-    keys[key] = false;
-  });
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+}
 
-  button.addEventListener("mousedown", () => {
-    keys[key] = true;
-  });
+// Atualiza visualmente a bolinha do joystick.
+function updateJoystickStick(deltaX, deltaY) {
+  joystickStick.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+}
 
-  button.addEventListener("mouseup", () => {
-    keys[key] = false;
-  });
+// Reseta o joystick para o centro.
+function resetJoystick() {
+  joystick.active = false;
+  joystick.pointerId = null;
+  joystick.x = 0;
+  joystick.y = 0;
+
+  updateJoystickStick(0, 0);
+}
+
+// Atualiza o joystick com base no toque.
+function updateJoystickFromPointer(event) {
+  const deltaX = event.clientX - joystick.centerX;
+  const deltaY = event.clientY - joystick.centerY;
+
+  const distanceFromCenter = Math.hypot(deltaX, deltaY);
+  const limitedDistance = Math.min(distanceFromCenter, joystick.maxDistance);
+
+  const angle = Math.atan2(deltaY, deltaX);
+
+  const limitedX = Math.cos(angle) * limitedDistance;
+  const limitedY = Math.sin(angle) * limitedDistance;
+
+  joystick.x = limitedX / joystick.maxDistance;
+  joystick.y = limitedY / joystick.maxDistance;
+
+  updateJoystickStick(limitedX, limitedY);
+}
+
+// Começa o controle do joystick.
+joystickArea.addEventListener("pointerdown", (event) => {
+  const isMobile = window.innerWidth <= 900;
+
+  if (!isMobile || !gameRunning) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const center = getJoystickCenter();
+
+  joystick.active = true;
+  joystick.pointerId = event.pointerId;
+  joystick.centerX = center.x;
+  joystick.centerY = center.y;
+
+  joystickArea.setPointerCapture(event.pointerId);
+
+  updateJoystickFromPointer(event);
+});
+
+// Move o joystick.
+joystickArea.addEventListener("pointermove", (event) => {
+  if (!joystick.active) return;
+  if (event.pointerId !== joystick.pointerId) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  updateJoystickFromPointer(event);
+});
+
+// Solta o joystick.
+joystickArea.addEventListener("pointerup", (event) => {
+  if (event.pointerId !== joystick.pointerId) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  resetJoystick();
+});
+
+// Cancela o joystick.
+joystickArea.addEventListener("pointercancel", (event) => {
+  if (event.pointerId !== joystick.pointerId) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  resetJoystick();
 });
 
 // Função usada pelo botão de tiro no celular.
