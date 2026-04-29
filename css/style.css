@@ -277,4 +277,117 @@ body {
   color: #fef3c7;
   font-weight: 700;
 }
+/* Caixa da loja no menu inicial */
+.shop-box {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: left;
+}
+
+.shop-box h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  text-align: center;
+}
+
+/* Grade das skins */
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.skin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.88);
+  color: white;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.skin-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 197, 94, 0.65);
+  background: rgba(15, 23, 42, 1);
+}
+
+.skin-card strong {
+  font-size: 14px;
+}
+
+.skin-card small {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.skin-card em {
+  margin-top: 4px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.14);
+  color: #bbf7d0;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* Bolinha de prévia da skin */
+.skin-preview {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.skin-blue {
+  background: #38bdf8;
+}
+
+.skin-green {
+  background: #22c55e;
+}
+
+.skin-purple {
+  background: #a855f7;
+}
+
+.skin-gold {
+  background: #facc15;
+}
+
+/* Mensagem da loja */
+.shop-message {
+  min-height: 20px;
+  margin-top: 10px;
+  color: #fef3c7;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Em celulares menores, reduz a loja */
+@media (max-height: 760px) {
+  .shop-box {
+    margin-top: 12px;
+    padding: 10px;
+  }
+
+  .skin-card {
+    padding: 8px 6px;
+  }
+
+  .skin-preview {
+    width: 28px;
+    height: 28px;
+  }
+}
 }

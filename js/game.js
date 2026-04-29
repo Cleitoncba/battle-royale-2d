@@ -28,6 +28,14 @@ const resultKillsText = document.getElementById("resultKillsText");
 const matchCoinsText = document.getElementById("matchCoinsText");
 const totalCoinsText = document.getElementById("totalCoinsText");
 const menuCoinsText = document.getElementById("menuCoinsText");
+const shopMessage = document.getElementById("shopMessage");
+
+const skinCards = document.querySelectorAll(".skin-card");
+
+const skinStatusBlue = document.getElementById("skinStatusBlue");
+const skinStatusGreen = document.getElementById("skinStatusGreen");
+const skinStatusPurple = document.getElementById("skinStatusPurple");
+const skinStatusGold = document.getElementById("skinStatusGold");
 
 const mobileShootButton = document.getElementById("mobileShootButton");
 const mobileReloadButton = document.getElementById("mobileReloadButton");
@@ -171,6 +179,39 @@ const VICTORY_BONUS = 50;
 const DEFEAT_PENALTY = 5;
 const COINS_STORAGE_KEY = "battleRoyale2dCoins";
 
+const SKINS_STORAGE_KEY = "battleRoyale2dOwnedSkins";
+const EQUIPPED_SKIN_STORAGE_KEY = "battleRoyale2dEquippedSkin";
+
+const SKINS = {
+  blue: {
+    id: "blue",
+    name: "Azul",
+    price: 0,
+    color: "#38bdf8",
+  },
+
+  green: {
+    id: "green",
+    name: "Verde",
+    price: 100,
+    color: "#22c55e",
+  },
+
+  purple: {
+    id: "purple",
+    name: "Roxa",
+    price: 250,
+    color: "#a855f7",
+  },
+
+  gold: {
+    id: "gold",
+    name: "Dourada",
+    price: 500,
+    color: "#facc15",
+  },
+};
+
 // Ajusta o canvas ao tamanho da tela
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -184,7 +225,116 @@ function getTotalCoins() {
   const savedCoins = localStorage.getItem(COINS_STORAGE_KEY);
   return savedCoins ? Number(savedCoins) : 0;
 }
+// Carrega as skins compradas.
+// A skin azul sempre vem liberada.
+function getOwnedSkins() {
+  const savedSkins = localStorage.getItem(SKINS_STORAGE_KEY);
 
+  if (!savedSkins) {
+    return {
+      blue: true,
+      green: false,
+      purple: false,
+      gold: false,
+    };
+  }
+
+  return JSON.parse(savedSkins);
+}
+
+// Salva as skins compradas.
+function saveOwnedSkins(ownedSkins) {
+  localStorage.setItem(SKINS_STORAGE_KEY, JSON.stringify(ownedSkins));
+}
+
+// Retorna a skin equipada.
+function getEquippedSkinId() {
+  return localStorage.getItem(EQUIPPED_SKIN_STORAGE_KEY) || "blue";
+}
+
+// Salva a skin equipada.
+function saveEquippedSkin(skinId) {
+  localStorage.setItem(EQUIPPED_SKIN_STORAGE_KEY, skinId);
+}
+
+// Retorna a cor da skin equipada.
+function getEquippedSkinColor() {
+  const skinId = getEquippedSkinId();
+  return SKINS[skinId]?.color || SKINS.blue.color;
+}
+
+// Atualiza textos dos cards da loja.
+function updateShopUI() {
+  const ownedSkins = getOwnedSkins();
+  const equippedSkinId = getEquippedSkinId();
+
+  skinStatusBlue.textContent = equippedSkinId === "blue" ? "Equipada" : "Equipar";
+
+  skinStatusGreen.textContent = ownedSkins.green
+    ? equippedSkinId === "green"
+      ? "Equipada"
+      : "Equipar"
+    : "Comprar";
+
+  skinStatusPurple.textContent = ownedSkins.purple
+    ? equippedSkinId === "purple"
+      ? "Equipada"
+      : "Equipar"
+    : "Comprar";
+
+  skinStatusGold.textContent = ownedSkins.gold
+    ? equippedSkinId === "gold"
+      ? "Equipada"
+      : "Equipar"
+    : "Comprar";
+}
+
+// Mostra mensagem temporária na loja.
+function showShopMessage(message) {
+  if (!shopMessage) return;
+
+  shopMessage.textContent = message;
+
+  setTimeout(() => {
+    shopMessage.textContent = "";
+  }, 1800);
+}
+
+// Compra ou equipa uma skin.
+function handleSkinClick(skinId) {
+  const skin = SKINS[skinId];
+
+  if (!skin) return;
+
+  const ownedSkins = getOwnedSkins();
+  const totalCoins = getTotalCoins();
+
+  // Se já tem a skin, apenas equipa.
+  if (ownedSkins[skinId]) {
+    saveEquippedSkin(skinId);
+    updateShopUI();
+    showShopMessage(`Skin ${skin.name} equipada.`);
+    return;
+  }
+
+  // Se não tem coins suficientes.
+  if (totalCoins < skin.price) {
+    showShopMessage(`Coins insuficientes para comprar ${skin.name}.`);
+    return;
+  }
+
+  // Compra a skin.
+  ownedSkins[skinId] = true;
+
+  saveOwnedSkins(ownedSkins);
+  saveTotalCoins(totalCoins - skin.price);
+  saveEquippedSkin(skinId);
+
+  updateMenuCoins();
+  updateShopUI();
+
+  showShopMessage(`Você comprou e equipou a skin ${skin.name}.`);
+}
 // Salva o total de coins no navegador.
 function saveTotalCoins(amount) {
   localStorage.setItem(COINS_STORAGE_KEY, String(amount));
@@ -308,7 +458,7 @@ maxAmmo: WEAPONS.pistol.maxAmmo,
     reloading: false,
     lastShot: 0,
     fireRate: 320,
-    color: "#38bdf8",
+    color: getEquippedSkinColor(),
 
     // Ângulo oficial da mira/arma.
     // 0 significa apontando para a direita.
@@ -499,6 +649,7 @@ function endGame(victory) {
 
   saveTotalCoins(newTotalCoins);
   updateMenuCoins();
+  updateShopUI();
 
   endScreen.classList.add("active");
 
@@ -1669,8 +1820,16 @@ canvas.addEventListener("pointercancel", (event) => {
   mobileAim.active = false;
   mobileAim.pointerId = null;
 });
-// Atualiza as coins no menu quando o jogo abre.
+// Eventos da loja de skins
+skinCards.forEach((card) => {
+  card.addEventListener("click", () => {
+    const skinId = card.dataset.skin;
+    handleSkinClick(skinId);
+  });
+});
+// Atualiza menu e loja quando o jogo abre.
 updateMenuCoins();
+updateShopUI();
 // Registra service worker para PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
