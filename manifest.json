@@ -1,0 +1,11 @@
+{
+  "name": "Battle Royale 2D",
+  "short_name": "BR 2D",
+  "description": "Um jogo Battle Royale 2D feito em HTML, CSS e JavaScript.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "orientation": "landscape",
+  "icons": []
+}

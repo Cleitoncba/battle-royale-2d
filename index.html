@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+
+  <!-- Faz o jogo se adaptar melhor ao celular -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Cor da barra do navegador no mobile -->
+  <meta name="theme-color" content="#111827" />
+
+  <title>Battle Royale 2D</title>
+
+  <!-- CSS principal -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Manifest do PWA -->
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+  <!-- Tela inicial -->
+  <section id="startScreen" class="screen active">
+    <div class="menu-card">
+      <h1>Battle Royale 2D</h1>
+      <p>
+        Sobreviva, elimine os bots e fique dentro da zona segura.
+      </p>
+
+      <button id="startButton" class="primary-button">
+        Jogar agora
+      </button>
+
+      <div class="instructions">
+        <h2>Controles no PC</h2>
+        <p><strong>WASD:</strong> mover</p>
+        <p><strong>Mouse:</strong> mirar</p>
+        <p><strong>Clique:</strong> atirar</p>
+        <p><strong>R:</strong> recarregar</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tela do jogo -->
+  <main id="gameScreen" class="game-screen">
+    <!-- HUD superior -->
+    <div class="hud">
+      <div>❤️ Vida: <span id="healthText">100</span></div>
+      <div>🔫 Munição: <span id="ammoText">12</span></div>
+      <div>☠️ Kills: <span id="killsText">0</span></div>
+      <div>👥 Inimigos: <span id="botsText">0</span></div>
+      <div>🌀 Zona: <span id="zoneText">100%</span></div>
+    </div>
+
+    <!-- Canvas onde o jogo será desenhado -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Controles mobile -->
+    <div id="mobileControls" class="mobile-controls">
+      <div class="movement-buttons">
+        <button data-key="w">▲</button>
+        <div>
+          <button data-key="a">◀</button>
+          <button data-key="s">▼</button>
+          <button data-key="d">▶</button>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button id="mobileShootButton">Atirar</button>
+        <button id="mobileReloadButton">Recarregar</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Tela final -->
+  <section id="endScreen" class="screen">
+    <div class="menu-card">
+      <h1 id="endTitle">Fim de jogo</h1>
+      <p id="endMessage">Resultado da partida.</p>
+
+      <button id="restartButton" class="primary-button">
+        Jogar novamente
+      </button>
+    </div>
+  </section>
+
+  <!-- JavaScript principal -->
+  <script src="js/game.js" defer></script>
+</body>
+</html>
