@@ -25,6 +25,9 @@
       <p>
         Sobreviva, elimine os bots e fique dentro da zona segura.
       </p>
+      <div class="coins-preview">
+  💰 Seus coins: <strong id="menuCoinsText">0</strong>
+</div>
 
       <button id="startButton" class="primary-button">
         Jogar agora
@@ -83,15 +86,21 @@
 
   <!-- Tela final -->
   <section id="endScreen" class="screen">
-    <div class="menu-card">
-      <h1 id="endTitle">Fim de jogo</h1>
-      <p id="endMessage">Resultado da partida.</p>
+  <div class="menu-card">
+    <h1 id="endTitle">Fim de jogo</h1>
+    <p id="endMessage">Resultado da partida.</p>
 
-      <button id="restartButton" class="primary-button">
-        Jogar novamente
-      </button>
+    <div class="result-box">
+      <p>☠️ Kills: <strong id="resultKillsText">0</strong></p>
+      <p>🪙 Coins da partida: <strong id="matchCoinsText">0</strong></p>
+      <p>💰 Total de coins: <strong id="totalCoinsText">0</strong></p>
     </div>
-  </section>
+
+    <button id="restartButton" class="primary-button">
+      Jogar novamente
+    </button>
+  </div>
+</section>
 
   <!-- JavaScript principal -->
   <script src="js/game.js" defer></script>

@@ -24,6 +24,10 @@ const shieldText = document.getElementById("shieldText");
 
 const endTitle = document.getElementById("endTitle");
 const endMessage = document.getElementById("endMessage");
+const resultKillsText = document.getElementById("resultKillsText");
+const matchCoinsText = document.getElementById("matchCoinsText");
+const totalCoinsText = document.getElementById("totalCoinsText");
+const menuCoinsText = document.getElementById("menuCoinsText");
 
 const mobileShootButton = document.getElementById("mobileShootButton");
 const mobileReloadButton = document.getElementById("mobileReloadButton");
@@ -162,6 +166,10 @@ const LOOT_COUNT = 26;
 const MEDKIT_LOOT_AMOUNT = 1;
 const AMMO_LOOT_AMOUNT = 8;
 const SHIELD_LOOT_AMOUNT = 25;
+const COINS_PER_KILL = 10;
+const VICTORY_BONUS = 50;
+const DEFEAT_PENALTY = 5;
+const COINS_STORAGE_KEY = "battleRoyale2dCoins";
 
 // Ajusta o canvas ao tamanho da tela
 function resizeCanvas() {
@@ -171,7 +179,35 @@ function resizeCanvas() {
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+// Carrega o total de coins salvo no navegador.
+function getTotalCoins() {
+  const savedCoins = localStorage.getItem(COINS_STORAGE_KEY);
+  return savedCoins ? Number(savedCoins) : 0;
+}
 
+// Salva o total de coins no navegador.
+function saveTotalCoins(amount) {
+  localStorage.setItem(COINS_STORAGE_KEY, String(amount));
+}
+
+// Atualiza o total de coins exibido no menu inicial.
+function updateMenuCoins() {
+  if (!menuCoinsText) return;
+  menuCoinsText.textContent = getTotalCoins();
+}
+
+// Calcula as coins ganhas na partida.
+function calculateMatchCoins(victory) {
+  let coins = kills * COINS_PER_KILL;
+
+  if (victory) {
+    coins += VICTORY_BONUS;
+  } else {
+    coins -= DEFEAT_PENALTY;
+  }
+
+  return Math.max(0, coins);
+}
 // Cria número aleatório entre mínimo e máximo
 function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
@@ -458,11 +494,21 @@ function endGame(victory) {
     cancelAnimationFrame(animationId);
   }
 
+  const matchCoins = calculateMatchCoins(victory);
+  const newTotalCoins = getTotalCoins() + matchCoins;
+
+  saveTotalCoins(newTotalCoins);
+  updateMenuCoins();
+
   endScreen.classList.add("active");
+
+  resultKillsText.textContent = kills;
+  matchCoinsText.textContent = matchCoins;
+  totalCoinsText.textContent = newTotalCoins;
 
   if (victory) {
     endTitle.textContent = "Vitória!";
-    endMessage.textContent = `Você venceu a partida com ${kills} eliminações.`;
+    endMessage.textContent = `Você venceu a partida com ${kills} eliminações. Bônus de vitória aplicado.`;
   } else {
     endTitle.textContent = "Derrota!";
     endMessage.textContent = `Você foi eliminado. Kills: ${kills}.`;
@@ -1623,6 +1669,8 @@ canvas.addEventListener("pointercancel", (event) => {
   mobileAim.active = false;
   mobileAim.pointerId = null;
 });
+// Atualiza as coins no menu quando o jogo abre.
+updateMenuCoins();
 // Registra service worker para PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

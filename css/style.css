@@ -252,4 +252,29 @@ body {
   .menu-card h1 {
     font-size: 28px;
   }
+  /* Caixa de resultado da partida */
+.result-box {
+  margin: 18px 0;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: left;
+}
+
+.result-box p {
+  margin: 8px 0;
+  color: #e5e7eb;
+}
+
+/* Coins exibidas no menu inicial */
+.coins-preview {
+  margin: 14px 0 8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.32);
+  color: #fef3c7;
+  font-weight: 700;
+}
 }
