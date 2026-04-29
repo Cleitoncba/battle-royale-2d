@@ -390,4 +390,66 @@ body {
     height: 28px;
   }
 }
+/* Caixa de dificuldade */
+.difficulty-box {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+}
+
+.difficulty-box h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.difficulty-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.difficulty-button {
+  padding: 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.88);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.difficulty-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 197, 94, 0.65);
+}
+
+.difficulty-button.active {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.85);
+  color: #bbf7d0;
+}
+
+.difficulty-description {
+  min-height: 20px;
+  margin-top: 10px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+/* Em telas baixas, reduz a caixa de dificuldade */
+@media (max-height: 760px) {
+  .difficulty-box {
+    margin-top: 10px;
+    padding: 10px;
+  }
+
+  .difficulty-button {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}
 }

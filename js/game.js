@@ -19,6 +19,7 @@ const weaponText = document.getElementById("weaponText");
 const killsText = document.getElementById("killsText");
 const botsText = document.getElementById("botsText");
 const zoneText = document.getElementById("zoneText");
+const difficultyText = document.getElementById("difficultyText");
 const medkitsText = document.getElementById("medkitsText");
 const shieldText = document.getElementById("shieldText");
 
@@ -36,6 +37,8 @@ const skinStatusBlue = document.getElementById("skinStatusBlue");
 const skinStatusGreen = document.getElementById("skinStatusGreen");
 const skinStatusPurple = document.getElementById("skinStatusPurple");
 const skinStatusGold = document.getElementById("skinStatusGold");
+const difficultyButtons = document.querySelectorAll(".difficulty-button");
+const difficultyDescription = document.getElementById("difficultyDescription");
 
 const mobileShootButton = document.getElementById("mobileShootButton");
 const mobileReloadButton = document.getElementById("mobileReloadButton");
@@ -117,7 +120,52 @@ let kills = 0;
 let safeZone;
 
 // Configurações principais
-const BOT_COUNT = 10;
+const DEFAULT_DIFFICULTY = "normal";
+const DIFFICULTY_STORAGE_KEY = "battleRoyale2dDifficulty";
+
+const DIFFICULTIES = {
+  easy: {
+    id: "easy",
+    name: "Fácil",
+    description: "Fácil: menos bots, menor dano e partida mais tranquila.",
+    botCount: 6,
+    botSpeedMin: 0.45,
+    botSpeedMax: 0.75,
+    botDamage: 3,
+    botFireRateMin: 1900,
+    botFireRateMax: 2800,
+    victoryBonusMultiplier: 0.8,
+    killCoinsMultiplier: 0.8,
+  },
+
+  normal: {
+    id: "normal",
+    name: "Normal",
+    description: "Normal: experiência equilibrada.",
+    botCount: 10,
+    botSpeedMin: 0.55,
+    botSpeedMax: 0.95,
+    botDamage: 4,
+    botFireRateMin: 1500,
+    botFireRateMax: 2300,
+    victoryBonusMultiplier: 1,
+    killCoinsMultiplier: 1,
+  },
+
+  hard: {
+    id: "hard",
+    name: "Difícil",
+    description: "Difícil: mais bots, mais dano e recompensas maiores.",
+    botCount: 16,
+    botSpeedMin: 0.8,
+    botSpeedMax: 1.35,
+    botDamage: 6,
+    botFireRateMin: 1000,
+    botFireRateMax: 1700,
+    victoryBonusMultiplier: 1.6,
+    killCoinsMultiplier: 1.5,
+  },
+};
 const PLAYER_MAX_HEALTH = 100;
 const PLAYER_MAX_AMMO = 12;
 const WEAPONS = {
@@ -161,7 +209,8 @@ const WEAPONS = {
   },
 };
 // Configurações para deixar o jogo mais jogável no celular
-const BOT_BULLET_DAMAGE = 4;
+// O dano dos bots agora vem da dificuldade selecionada.
+let BOT_BULLET_DAMAGE = DIFFICULTIES.normal.botDamage;
 const ZONE_DAMAGE_PLAYER = 0.025;
 const ZONE_DAMAGE_BOT = 0.02;
 const HEAL_AMOUNT = 35;
@@ -220,6 +269,48 @@ function resizeCanvas() {
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+// Retorna o ID da dificuldade salva.
+function getSelectedDifficultyId() {
+  return localStorage.getItem(DIFFICULTY_STORAGE_KEY) || DEFAULT_DIFFICULTY;
+}
+
+// Retorna o objeto da dificuldade atual.
+function getSelectedDifficulty() {
+  const difficultyId = getSelectedDifficultyId();
+  return DIFFICULTIES[difficultyId] || DIFFICULTIES[DEFAULT_DIFFICULTY];
+}
+
+// Salva a dificuldade escolhida.
+function saveSelectedDifficulty(difficultyId) {
+  if (!DIFFICULTIES[difficultyId]) return;
+
+  localStorage.setItem(DIFFICULTY_STORAGE_KEY, difficultyId);
+}
+
+// Atualiza o visual dos botões de dificuldade.
+function updateDifficultyUI() {
+  const selectedDifficulty = getSelectedDifficulty();
+
+  difficultyButtons.forEach((button) => {
+    const isActive = button.dataset.difficulty === selectedDifficulty.id;
+    button.classList.toggle("active", isActive);
+  });
+
+  if (difficultyDescription) {
+    difficultyDescription.textContent = selectedDifficulty.description;
+  }
+
+  if (difficultyText) {
+    difficultyText.textContent = selectedDifficulty.name;
+  }
+}
+
+// Aplica configurações da dificuldade na partida atual.
+function applyDifficultySettings() {
+  const selectedDifficulty = getSelectedDifficulty();
+
+  BOT_BULLET_DAMAGE = selectedDifficulty.botDamage;
+}
 // Carrega o total de coins salvo no navegador.
 function getTotalCoins() {
   const savedCoins = localStorage.getItem(COINS_STORAGE_KEY);
@@ -348,10 +439,16 @@ function updateMenuCoins() {
 
 // Calcula as coins ganhas na partida.
 function calculateMatchCoins(victory) {
-  let coins = kills * COINS_PER_KILL;
+  const selectedDifficulty = getSelectedDifficulty();
+
+  let coins = Math.floor(
+    kills * COINS_PER_KILL * selectedDifficulty.killCoinsMultiplier
+  );
 
   if (victory) {
-    coins += VICTORY_BONUS;
+    coins += Math.floor(
+      VICTORY_BONUS * selectedDifficulty.victoryBonusMultiplier
+    );
   } else {
     coins -= DEFEAT_PENALTY;
   }
@@ -470,7 +567,9 @@ maxAmmo: WEAPONS.pistol.maxAmmo,
 function createBots() {
   bots = [];
 
-  for (let i = 0; i < BOT_COUNT; i++) {
+  const selectedDifficulty = getSelectedDifficulty();
+
+  for (let i = 0; i < selectedDifficulty.botCount; i++) {
     let botX;
     let botY;
     let attempts = 0;
@@ -488,10 +587,16 @@ function createBots() {
       x: botX,
       y: botY,
       radius: 17,
-      speed: randomBetween(0.55, 0.95),
+      speed: randomBetween(
+        selectedDifficulty.botSpeedMin,
+        selectedDifficulty.botSpeedMax
+      ),
       health: 55,
       lastShot: 0,
-      fireRate: randomBetween(1500, 2300),
+      fireRate: randomBetween(
+        selectedDifficulty.botFireRateMin,
+        selectedDifficulty.botFireRateMax
+      ),
       color: "#ef4444",
     });
   }
@@ -619,6 +724,8 @@ function startGame() {
 
   gameRunning = true;
   kills = 0;
+
+  applyDifficultySettings();
 
   player = createPlayer();
   createDecorations();
@@ -1117,6 +1224,7 @@ ammoText.textContent = player.reloading
 
   const zonePercent = Math.floor((safeZone.radius / 760) * 100);
   zoneText.textContent = `${Math.max(0, zonePercent)}%`;
+  difficultyText.textContent = getSelectedDifficulty().name;
 }
 
 /// Desenha o fundo principal do mapa.
@@ -1827,9 +1935,19 @@ skinCards.forEach((card) => {
     handleSkinClick(skinId);
   });
 });
+// Eventos dos botões de dificuldade
+difficultyButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const difficultyId = button.dataset.difficulty;
+
+    saveSelectedDifficulty(difficultyId);
+    updateDifficultyUI();
+  });
+});
 // Atualiza menu e loja quando o jogo abre.
 updateMenuCoins();
 updateShopUI();
+updateDifficultyUI();
 // Registra service worker para PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
