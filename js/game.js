@@ -19,6 +19,7 @@ const killsText = document.getElementById("killsText");
 const botsText = document.getElementById("botsText");
 const zoneText = document.getElementById("zoneText");
 const medkitsText = document.getElementById("medkitsText");
+const shieldText = document.getElementById("shieldText");
 
 const endTitle = document.getElementById("endTitle");
 const endMessage = document.getElementById("endMessage");
@@ -90,6 +91,7 @@ let player;
 let bots = [];
 let bullets = [];
 let obstacles = [];
+let loots = [];
 
 // Dados da partida
 let kills = 0;
@@ -108,6 +110,13 @@ const ZONE_DAMAGE_BOT = 0.02;
 const HEAL_AMOUNT = 35;
 const HEAL_TIME = 900;
 const START_MEDKITS = 2;
+const START_SHIELD = 0;
+const MAX_SHIELD = 100;
+
+const LOOT_COUNT = 26;
+const MEDKIT_LOOT_AMOUNT = 1;
+const AMMO_LOOT_AMOUNT = 8;
+const SHIELD_LOOT_AMOUNT = 25;
 
 // Ajusta o canvas ao tamanho da tela
 function resizeCanvas() {
@@ -145,6 +154,7 @@ function createPlayer() {
     maxAmmo: PLAYER_MAX_AMMO,
     medkits: START_MEDKITS,
     healing: false,
+    shield: START_SHIELD,
     reloadTime: 900,
     reloading: false,
     lastShot: 0,
@@ -174,7 +184,25 @@ function createBots() {
     });
   }
 }
+// Cria itens de loot espalhados pelo mapa.
+// O jogador pega ao encostar neles.
+function createLoots() {
+  loots = [];
 
+  const lootTypes = ["medkit", "ammo", "shield"];
+
+  for (let i = 0; i < LOOT_COUNT; i++) {
+    const type = lootTypes[Math.floor(Math.random() * lootTypes.length)];
+
+    loots.push({
+      x: randomBetween(80, WORLD_WIDTH - 80),
+      y: randomBetween(80, WORLD_HEIGHT - 80),
+      radius: 14,
+      type,
+      pulse: randomBetween(0, Math.PI * 2),
+    });
+  }
+}
 // Cria obstáculos no mapa
 function createObstacles() {
   obstacles = [];
@@ -212,6 +240,7 @@ function startGame() {
   player = createPlayer();
   createBots();
   createObstacles();
+  createLoots();
   createSafeZone();
 
   bullets = [];
@@ -313,6 +342,21 @@ function useMedkit() {
     player.healing = false;
   }, HEAL_TIME);
 }
+// Aplica dano no jogador.
+// O escudo absorve primeiro. Quando o escudo acaba, o restante vai para a vida.
+function applyDamageToPlayer(amount) {
+  if (!player) return;
+
+  if (player.shield > 0) {
+    const shieldDamage = Math.min(player.shield, amount);
+    player.shield -= shieldDamage;
+    amount -= shieldDamage;
+  }
+
+  if (amount > 0) {
+    player.health -= amount;
+  }
+}
 // Recarrega arma
 function reloadWeapon() {
   if (player.reloading) return;
@@ -411,8 +455,8 @@ if (isMobile) {
   const distFromZoneCenter = Math.hypot(player.x - safeZone.x, player.y - safeZone.y);
 
   if (distFromZoneCenter > safeZone.radius) {
-    player.health -= ZONE_DAMAGE_PLAYER;
-  }
+  applyDamageToPlayer(ZONE_DAMAGE_PLAYER);
+}
 
   if (player.health <= 0) {
     endGame(false);
@@ -467,7 +511,34 @@ function updateBots() {
     endGame(true);
   }
 }
+// Aplica o efeito do loot coletado.
+function collectLoot(loot) {
+  if (loot.type === "medkit") {
+    player.medkits += MEDKIT_LOOT_AMOUNT;
+  }
 
+  if (loot.type === "ammo") {
+    player.ammo = Math.min(player.maxAmmo, player.ammo + AMMO_LOOT_AMOUNT);
+  }
+
+  if (loot.type === "shield") {
+    player.shield = Math.min(MAX_SHIELD, player.shield + SHIELD_LOOT_AMOUNT);
+  }
+}
+
+// Verifica se o jogador encostou em algum loot.
+function updateLoots() {
+  loots = loots.filter((loot) => {
+    const picked = distance(player, loot) < player.radius + loot.radius;
+
+    if (picked) {
+      collectLoot(loot);
+      return false;
+    }
+
+    return true;
+  });
+}
 // Atualiza tiros
 function updateBullets() {
   bullets.forEach((bullet) => {
@@ -488,9 +559,9 @@ function updateBullets() {
     // Tiro dos bots acerta jogador
     if (bullet.owner !== player) {
       if (distance(bullet, player) < bullet.radius + player.radius) {
-        player.health -= bullet.damage;
-        bullet.life = 0;
-      }
+  applyDamageToPlayer(bullet.damage);
+  bullet.life = 0;
+}
     }
 
     // Tiro bate em obstáculo
@@ -547,6 +618,7 @@ function updateHUD() {
   killsText.textContent = kills;
   botsText.textContent = bots.length;
   medkitsText.textContent = player.medkits;
+  shieldText.textContent = Math.floor(player.shield);
 
   const zonePercent = Math.floor((safeZone.radius / 760) * 100);
   zoneText.textContent = `${Math.max(0, zonePercent)}%`;
@@ -631,7 +703,49 @@ function drawObstacles() {
     );
   });
 }
+// Desenha os itens de loot no mapa.
+function drawLoots() {
+  loots.forEach((loot) => {
+    const screenX = loot.x - camera.x;
+    const screenY = loot.y - camera.y;
 
+    // Pulso visual simples
+    const pulseSize = Math.sin(Date.now() / 250 + loot.pulse) * 2;
+
+    let color = "#ffffff";
+    let icon = "?";
+
+    if (loot.type === "medkit") {
+      color = "#22c55e";
+      icon = "+";
+    }
+
+    if (loot.type === "ammo") {
+      color = "#facc15";
+      icon = "•";
+    }
+
+    if (loot.type === "shield") {
+      color = "#38bdf8";
+      icon = "S";
+    }
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, loot.radius + pulseSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 15px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(icon, screenX, screenY + 1);
+  });
+}
 // Desenha personagem ou bot
 function drawCharacter(entity, isPlayer = false) {
   const screenX = entity.x - camera.x;
@@ -738,6 +852,7 @@ function draw() {
 
   drawMap();
   drawObstacles();
+  drawLoots();
 
   bots.forEach((bot) => drawCharacter(bot, false));
 
@@ -753,6 +868,7 @@ function gameLoop() {
   updatePlayer();
   updateBots();
   updateBullets();
+  updateLoots();
   updateSafeZone();
   updateCamera();
   updateHUD();
