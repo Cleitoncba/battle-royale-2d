@@ -54,6 +54,7 @@ const mouse = {
 // Ela começa apontando para a direita.
 const mobileAim = {
   active: false,
+  pointerId: null,
   angle: 0,
   worldX: 0,
   worldY: 0,
@@ -83,9 +84,10 @@ let safeZone;
 const BOT_COUNT = 10;
 const PLAYER_MAX_HEALTH = 100;
 const PLAYER_MAX_AMMO = 12;
-// Fator geral de velocidade do jogo.
-// Quanto menor, mais lento fica.
-const GAME_SPEED = 0.65;
+// Configurações para deixar o jogo mais jogável no celular
+const BOT_BULLET_DAMAGE = 4;
+const ZONE_DAMAGE_PLAYER = 0.025;
+const ZONE_DAMAGE_BOT = 0.02;
 
 // Ajusta o canvas ao tamanho da tela
 function resizeCanvas() {
@@ -138,10 +140,10 @@ function createBots() {
       x: randomBetween(120, WORLD_WIDTH - 120),
       y: randomBetween(120, WORLD_HEIGHT - 120),
       radius: 17,
-      speed: randomBetween(0.8, 1.3),
+      speed: randomBetween(0.55, 0.95),
       health: 55,
       lastShot: 0,
-      fireRate: randomBetween(800, 1300),
+      fireRate: randomBetween(1500, 2300),
       color: "#ef4444",
     });
   }
@@ -291,7 +293,7 @@ function shootBullet(owner, targetX, targetY) {
     y: owner.y,
     radius: 5,
     speed: owner === player ? 6.5 : 4.5,
-    damage: owner === player ? 24 : 10,
+    damage: owner === player ? 24 : BOT_BULLET_DAMAGE,
     vx: Math.cos(angle),
     vy: Math.sin(angle),
     owner,
@@ -327,7 +329,7 @@ function updatePlayer() {
   const distFromZoneCenter = Math.hypot(player.x - safeZone.x, player.y - safeZone.y);
 
   if (distFromZoneCenter > safeZone.radius) {
-    player.health -= 0.08;
+    player.health -= ZONE_DAMAGE_PLAYER;
   }
 
   if (player.health <= 0) {
@@ -364,7 +366,7 @@ function updateBots() {
     const distFromZoneCenter = Math.hypot(bot.x - safeZone.x, bot.y - safeZone.y);
 
     if (distFromZoneCenter > safeZone.radius) {
-      bot.health -= 0.04;
+      bot.health -= ZONE_DAMAGE_BOT;
     }
   });
 
@@ -737,6 +739,7 @@ function mobileShoot() {
 // Botão mobile de tiro
 mobileShootButton.addEventListener("pointerdown", (event) => {
   event.preventDefault();
+  event.stopPropagation();
   mobileShoot();
 });
 
@@ -748,45 +751,71 @@ function mobileReload() {
 
 mobileReloadButton.addEventListener("pointerdown", (event) => {
   event.preventDefault();
+  event.stopPropagation();
   mobileReload();
 });
-// Controle de mira no celular.
-// Toque e arraste no lado direito da tela para girar a arma.
+/// ===============================
+// MIRA MOBILE COM MULTI-TOQUE
+// ===============================
+
+// Atualiza a direção da mira mobile usando a posição do toque.
+function updateMobileAimFromPointer(event) {
+  if (!gameRunning || !player) return;
+
+  const touchWorldX = event.clientX + camera.x;
+  const touchWorldY = event.clientY + camera.y;
+
+  mobileAim.angle = Math.atan2(
+    touchWorldY - player.y,
+    touchWorldX - player.x
+  );
+
+  updateMobileAimPosition();
+}
+
+// Começa a controlar a mira no lado direito da tela.
 canvas.addEventListener("pointerdown", (event) => {
   const isMobile = window.innerWidth <= 900;
 
   if (!isMobile || !gameRunning) return;
 
-  // Só controla a mira se tocar no lado direito da tela.
-  if (event.clientX < window.innerWidth * 0.45) return;
+  // O lado esquerdo fica reservado para movimento.
+  // O lado direito controla a mira.
+  if (event.clientX < window.innerWidth * 0.42) return;
 
   mobileAim.active = true;
+  mobileAim.pointerId = event.pointerId;
 
-  const touchWorldX = event.clientX + camera.x;
-  const touchWorldY = event.clientY + camera.y;
+  canvas.setPointerCapture(event.pointerId);
 
-  mobileAim.angle = Math.atan2(touchWorldY - player.y, touchWorldX - player.x);
-  updateMobileAimPosition();
+  updateMobileAimFromPointer(event);
 });
 
+// Move a mira enquanto o dedo arrasta no lado direito.
 canvas.addEventListener("pointermove", (event) => {
   const isMobile = window.innerWidth <= 900;
 
-  if (!isMobile || !gameRunning || !mobileAim.active) return;
+  if (!isMobile || !gameRunning) return;
+  if (!mobileAim.active) return;
+  if (event.pointerId !== mobileAim.pointerId) return;
 
-  const touchWorldX = event.clientX + camera.x;
-  const touchWorldY = event.clientY + camera.y;
-
-  mobileAim.angle = Math.atan2(touchWorldY - player.y, touchWorldX - player.x);
-  updateMobileAimPosition();
+  updateMobileAimFromPointer(event);
 });
 
-canvas.addEventListener("pointerup", () => {
+// Solta a mira quando o dedo sai da tela.
+canvas.addEventListener("pointerup", (event) => {
+  if (event.pointerId !== mobileAim.pointerId) return;
+
   mobileAim.active = false;
+  mobileAim.pointerId = null;
 });
 
-canvas.addEventListener("pointercancel", () => {
+// Cancela a mira se o toque for interrompido.
+canvas.addEventListener("pointercancel", (event) => {
+  if (event.pointerId !== mobileAim.pointerId) return;
+
   mobileAim.active = false;
+  mobileAim.pointerId = null;
 });
 // Registra service worker para PWA
 if ("serviceWorker" in navigator) {
