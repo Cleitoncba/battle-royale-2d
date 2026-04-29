@@ -132,6 +132,7 @@ body {
   height: 100vh;
   background: #14532d;
   touch-action: none;
+  cursor: crosshair;
 }
 
 /* Controles mobile */

@@ -96,6 +96,7 @@ let bots = [];
 let bullets = [];
 let obstacles = [];
 let loots = [];
+let decorations = [];
 
 // Dados da partida
 let kills = 0;
@@ -185,7 +186,62 @@ function distance(a, b) {
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
+// Verifica colisão entre um círculo e um retângulo.
+// Usado para casas e pedras.
+function circleRectCollision(circleX, circleY, circleRadius, rectX, rectY, rectWidth, rectHeight) {
+  const closestX = clamp(circleX, rectX, rectX + rectWidth);
+  const closestY = clamp(circleY, rectY, rectY + rectHeight);
 
+  const distanceX = circleX - closestX;
+  const distanceY = circleY - closestY;
+
+  return distanceX * distanceX + distanceY * distanceY < circleRadius * circleRadius;
+}
+
+// Verifica se uma entidade circular bateu em um obstáculo.
+function isCollidingWithObstacle(entityX, entityY, entityRadius, obstacle) {
+  // Árvore: colisão circular
+  if (obstacle.type === "tree") {
+    const distanceToTree = Math.hypot(entityX - obstacle.x, entityY - obstacle.y);
+
+    return distanceToTree < entityRadius + obstacle.radius * 0.75;
+  }
+
+  // Pedra: colisão retangular aproximada
+  if (obstacle.type === "rock") {
+    return circleRectCollision(
+      entityX,
+      entityY,
+      entityRadius,
+      obstacle.x - obstacle.width / 2,
+      obstacle.y - obstacle.height / 2,
+      obstacle.width,
+      obstacle.height
+    );
+  }
+
+  // Casa: colisão retangular
+  if (obstacle.type === "house") {
+    return circleRectCollision(
+      entityX,
+      entityY,
+      entityRadius,
+      obstacle.x,
+      obstacle.y,
+      obstacle.width,
+      obstacle.height
+    );
+  }
+
+  return false;
+}
+
+// Verifica se uma posição bate em qualquer obstáculo do mapa.
+function collidesWithAnyObstacle(entityX, entityY, entityRadius) {
+  return obstacles.some((obstacle) => {
+    return isCollidingWithObstacle(entityX, entityY, entityRadius, obstacle);
+  });
+}
 // Cria o jogador
 function createPlayer() {
   return {
@@ -229,9 +285,22 @@ function createBots() {
   bots = [];
 
   for (let i = 0; i < BOT_COUNT; i++) {
+    let botX;
+    let botY;
+    let attempts = 0;
+
+    do {
+      botX = randomBetween(120, WORLD_WIDTH - 120);
+      botY = randomBetween(120, WORLD_HEIGHT - 120);
+      attempts++;
+    } while (
+      collidesWithAnyObstacle(botX, botY, 17) &&
+      attempts < 80
+    );
+
     bots.push({
-      x: randomBetween(120, WORLD_WIDTH - 120),
-      y: randomBetween(120, WORLD_HEIGHT - 120),
+      x: botX,
+      y: botY,
       radius: 17,
       speed: randomBetween(0.55, 0.95),
       health: 55,
@@ -260,17 +329,88 @@ function createLoots() {
     });
   }
 }
-// Cria obstáculos no mapa
+// Cria elementos decorativos do mapa.
+// Esses elementos não bloqueiam o jogador, são apenas visuais.
+function createDecorations() {
+  decorations = [];
+
+  // Gramas pequenas espalhadas pelo mapa
+  for (let i = 0; i < 180; i++) {
+    decorations.push({
+      type: "grass",
+      x: randomBetween(20, WORLD_WIDTH - 20),
+      y: randomBetween(20, WORLD_HEIGHT - 20),
+      size: randomBetween(8, 18),
+      rotation: randomBetween(0, Math.PI * 2),
+    });
+  }
+
+  // Arbustos pequenos
+  for (let i = 0; i < 45; i++) {
+    decorations.push({
+      type: "bush",
+      x: randomBetween(40, WORLD_WIDTH - 40),
+      y: randomBetween(40, WORLD_HEIGHT - 40),
+      radius: randomBetween(12, 22),
+    });
+  }
+}
+// Cria obstáculos reais do mapa.
+// Esses elementos bloqueiam tiros e serão usados como árvores, pedras e casas.
 function createObstacles() {
   obstacles = [];
 
-  for (let i = 0; i < 40; i++) {
+  // Árvores
+  for (let i = 0; i < 35; i++) {
     obstacles.push({
-      x: randomBetween(80, WORLD_WIDTH - 180),
-      y: randomBetween(80, WORLD_HEIGHT - 180),
-      width: randomBetween(45, 120),
-      height: randomBetween(45, 120),
-      color: Math.random() > 0.5 ? "#166534" : "#57534e",
+      type: "tree",
+      x: randomBetween(80, WORLD_WIDTH - 80),
+      y: randomBetween(80, WORLD_HEIGHT - 80),
+      radius: randomBetween(22, 34),
+      width: 0,
+      height: 0,
+    });
+  }
+
+  // Pedras
+  for (let i = 0; i < 25; i++) {
+    const size = randomBetween(34, 70);
+
+    obstacles.push({
+      type: "rock",
+      x: randomBetween(80, WORLD_WIDTH - 80),
+      y: randomBetween(80, WORLD_HEIGHT - 80),
+      radius: size / 2,
+      width: size,
+      height: size * randomBetween(0.65, 0.9),
+    });
+  }
+
+  // Casas simples
+  for (let i = 0; i < 10; i++) {
+    let houseX = randomBetween(120, WORLD_WIDTH - 220);
+let houseY = randomBetween(120, WORLD_HEIGHT - 220);
+
+// Evita casa muito próxima do spawn inicial do jogador.
+if (
+  Math.abs(houseX - WORLD_WIDTH / 2) < 250 &&
+  Math.abs(houseY - WORLD_HEIGHT / 2) < 250
+) {
+  houseX += 350;
+  houseY += 250;
+}
+
+houseX = clamp(houseX, 120, WORLD_WIDTH - 220);
+houseY = clamp(houseY, 120, WORLD_HEIGHT - 220);
+
+obstacles.push({
+  type: "house",
+  x: houseX,
+  y: houseY,
+      width: randomBetween(90, 150),
+      height: randomBetween(80, 130),
+      roofColor: "#7f1d1d",
+      wallColor: "#78350f",
     });
   }
 }
@@ -295,8 +435,9 @@ function startGame() {
   kills = 0;
 
   player = createPlayer();
-  createBots();
+  createDecorations();
   createObstacles();
+  createBots();
   createLoots();
   createSafeZone();
 
@@ -525,11 +666,23 @@ if (isMobile) {
     dy /= length;
   }
 
-  const nextX = player.x + dx * player.speed;
-  const nextY = player.y + dy * player.speed;
+const nextX = player.x + dx * player.speed;
+const nextY = player.y + dy * player.speed;
 
-  player.x = clamp(nextX, player.radius, WORLD_WIDTH - player.radius);
-  player.y = clamp(nextY, player.radius, WORLD_HEIGHT - player.radius);
+// Movimento separado por eixo.
+// Isso evita travar totalmente quando encosta em uma parede.
+const limitedNextX = clamp(nextX, player.radius, WORLD_WIDTH - player.radius);
+const limitedNextY = clamp(nextY, player.radius, WORLD_HEIGHT - player.radius);
+
+// Testa primeiro movimento no eixo X.
+if (!collidesWithAnyObstacle(limitedNextX, player.y, player.radius)) {
+  player.x = limitedNextX;
+}
+
+// Depois testa movimento no eixo Y.
+if (!collidesWithAnyObstacle(player.x, limitedNextY, player.radius)) {
+  player.y = limitedNextY;
+}
 
   // Dano fora da zona segura
   const distFromZoneCenter = Math.hypot(player.x - safeZone.x, player.y - safeZone.y);
@@ -552,8 +705,16 @@ function updateBots() {
     if (distToPlayer < 520) {
       const angle = Math.atan2(player.y - bot.y, player.x - bot.x);
 
-      bot.x += Math.cos(angle) * bot.speed;
-      bot.y += Math.sin(angle) * bot.speed;
+      const nextBotX = bot.x + Math.cos(angle) * bot.speed;
+const nextBotY = bot.y + Math.sin(angle) * bot.speed;
+
+if (!collidesWithAnyObstacle(nextBotX, bot.y, bot.radius)) {
+  bot.x = nextBotX;
+}
+
+if (!collidesWithAnyObstacle(bot.x, nextBotY, bot.radius)) {
+  bot.y = nextBotY;
+}
 
       // Atira no jogador
       if (distToPlayer < 430) {
@@ -561,8 +722,16 @@ function updateBots() {
       }
     } else {
       // Movimento simples aleatório
-      bot.x += Math.sin(Date.now() / 700 + bot.x) * 0.45;
-      bot.y += Math.cos(Date.now() / 700 + bot.y) * 0.45;
+      const randomNextX = bot.x + Math.sin(Date.now() / 700 + bot.x) * 0.45;
+const randomNextY = bot.y + Math.cos(Date.now() / 700 + bot.y) * 0.45;
+
+if (!collidesWithAnyObstacle(randomNextX, bot.y, bot.radius)) {
+  bot.x = randomNextX;
+}
+
+if (!collidesWithAnyObstacle(bot.x, randomNextY, bot.radius)) {
+  bot.y = randomNextY;
+}
     }
 
     bot.x = clamp(bot.x, bot.radius, WORLD_WIDTH - bot.radius);
@@ -655,20 +824,48 @@ function updateBullets() {
     // Tiro dos bots acerta jogador
     if (bullet.owner !== player) {
       if (distance(bullet, player) < bullet.radius + player.radius) {
-  applyDamageToPlayer(bullet.damage);
-  bullet.life = 0;
-}
+        applyDamageToPlayer(bullet.damage);
+        bullet.life = 0;
+      }
     }
 
     // Tiro bate em obstáculo
     obstacles.forEach((obstacle) => {
-      if (
-        bullet.x > obstacle.x &&
-        bullet.x < obstacle.x + obstacle.width &&
-        bullet.y > obstacle.y &&
-        bullet.y < obstacle.y + obstacle.height
-      ) {
-        bullet.life = 0;
+      // Colisão com árvore circular
+      if (obstacle.type === "tree") {
+        const hitTree =
+          Math.hypot(bullet.x - obstacle.x, bullet.y - obstacle.y) <
+          obstacle.radius;
+
+        if (hitTree) {
+          bullet.life = 0;
+        }
+      }
+
+      // Colisão com pedra retangular/oval aproximada
+      if (obstacle.type === "rock") {
+        const hitRock =
+          bullet.x > obstacle.x - obstacle.width / 2 &&
+          bullet.x < obstacle.x + obstacle.width / 2 &&
+          bullet.y > obstacle.y - obstacle.height / 2 &&
+          bullet.y < obstacle.y + obstacle.height / 2;
+
+        if (hitRock) {
+          bullet.life = 0;
+        }
+      }
+
+      // Colisão com casa retangular
+      if (obstacle.type === "house") {
+        const hitHouse =
+          bullet.x > obstacle.x &&
+          bullet.x < obstacle.x + obstacle.width &&
+          bullet.y > obstacle.y &&
+          bullet.y < obstacle.y + obstacle.height;
+
+        if (hitHouse) {
+          bullet.life = 0;
+        }
       }
     });
   });
@@ -725,23 +922,35 @@ ammoText.textContent = player.reloading
   zoneText.textContent = `${Math.max(0, zonePercent)}%`;
 }
 
-// Desenha fundo do mapa
+/// Desenha o fundo principal do mapa.
 function drawMap() {
-  ctx.fillStyle = "#166534";
+  // Fundo base de grama
+  ctx.fillStyle = "#14532d";
   ctx.fillRect(-camera.x, -camera.y, WORLD_WIDTH, WORLD_HEIGHT);
 
-  // Linhas leves no chão
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+  // Variação de cor em grandes áreas para não parecer tudo chapado
+  ctx.fillStyle = "rgba(22, 101, 52, 0.35)";
+  for (let i = 0; i < 12; i++) {
+    const x = ((i * 379) % WORLD_WIDTH) - camera.x;
+    const y = ((i * 211) % WORLD_HEIGHT) - camera.y;
+
+    ctx.beginPath();
+    ctx.ellipse(x, y, 260, 140, i, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Grade bem suave apenas para dar sensação de terreno
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.025)";
   ctx.lineWidth = 1;
 
-  for (let x = 0; x < WORLD_WIDTH; x += 80) {
+  for (let x = 0; x < WORLD_WIDTH; x += 120) {
     ctx.beginPath();
     ctx.moveTo(x - camera.x, -camera.y);
     ctx.lineTo(x - camera.x, WORLD_HEIGHT - camera.y);
     ctx.stroke();
   }
 
-  for (let y = 0; y < WORLD_HEIGHT; y += 80) {
+  for (let y = 0; y < WORLD_HEIGHT; y += 120) {
     ctx.beginPath();
     ctx.moveTo(-camera.x, y - camera.y);
     ctx.lineTo(WORLD_WIDTH - camera.x, y - camera.y);
@@ -782,26 +991,166 @@ function drawSafeZone() {
   );
   ctx.stroke();
 }
+// Desenha detalhes do chão, como gramas e arbustos.
+function drawDecorations() {
+  decorations.forEach((decoration) => {
+    const screenX = decoration.x - camera.x;
+    const screenY = decoration.y - camera.y;
 
-// Desenha obstáculos
+    if (decoration.type === "grass") {
+      ctx.save();
+      ctx.translate(screenX, screenY);
+      ctx.rotate(decoration.rotation);
+
+      ctx.strokeStyle = "rgba(134, 239, 172, 0.32)";
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -decoration.size);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(decoration.size * 0.45, -decoration.size * 0.75);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(-decoration.size * 0.45, -decoration.size * 0.75);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    if (decoration.type === "bush") {
+      ctx.fillStyle = "rgba(21, 128, 61, 0.85)";
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, decoration.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(34, 197, 94, 0.55)";
+      ctx.beginPath();
+      ctx.arc(
+        screenX - decoration.radius * 0.35,
+        screenY - decoration.radius * 0.25,
+        decoration.radius * 0.45,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+  });
+}
+/// Desenha obstáculos: árvores, pedras e casas.
 function drawObstacles() {
   obstacles.forEach((obstacle) => {
-    ctx.fillStyle = obstacle.color;
-    ctx.fillRect(
-      obstacle.x - camera.x,
-      obstacle.y - camera.y,
-      obstacle.width,
-      obstacle.height
-    );
+    const screenX = obstacle.x - camera.x;
+    const screenY = obstacle.y - camera.y;
 
-    ctx.strokeStyle = "rgba(0,0,0,0.25)";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(
-      obstacle.x - camera.x,
-      obstacle.y - camera.y,
-      obstacle.width,
-      obstacle.height
-    );
+    // Árvores
+    if (obstacle.type === "tree") {
+      // Sombra
+      ctx.fillStyle = "rgba(0, 0, 0, 0.20)";
+      ctx.beginPath();
+      ctx.ellipse(screenX + 4, screenY + 8, obstacle.radius * 0.9, obstacle.radius * 0.45, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tronco
+      ctx.fillStyle = "#78350f";
+      ctx.fillRect(screenX - 6, screenY + 4, 12, 22);
+
+      // Copa
+      ctx.fillStyle = "#166534";
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, obstacle.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#15803d";
+      ctx.beginPath();
+      ctx.arc(screenX - obstacle.radius * 0.35, screenY - obstacle.radius * 0.25, obstacle.radius * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(0,0,0,0.25)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, obstacle.radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Pedras
+    if (obstacle.type === "rock") {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+      ctx.beginPath();
+      ctx.ellipse(screenX + 3, screenY + 5, obstacle.width / 2, obstacle.height / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#57534e";
+      ctx.beginPath();
+      ctx.ellipse(screenX, screenY, obstacle.width / 2, obstacle.height / 2, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#78716c";
+      ctx.beginPath();
+      ctx.ellipse(screenX - obstacle.width * 0.15, screenY - obstacle.height * 0.18, obstacle.width * 0.22, obstacle.height * 0.16, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(0,0,0,0.25)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(screenX, screenY, obstacle.width / 2, obstacle.height / 2, 0.2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Casas
+    if (obstacle.type === "house") {
+      // Sombra
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      ctx.fillRect(screenX + 6, screenY + 8, obstacle.width, obstacle.height);
+
+      // Parede
+      ctx.fillStyle = obstacle.wallColor;
+      ctx.fillRect(screenX, screenY, obstacle.width, obstacle.height);
+
+      // Telhado
+      ctx.fillStyle = obstacle.roofColor;
+      ctx.beginPath();
+      ctx.moveTo(screenX - 10, screenY + 10);
+      ctx.lineTo(screenX + obstacle.width / 2, screenY - 35);
+      ctx.lineTo(screenX + obstacle.width + 10, screenY + 10);
+      ctx.closePath();
+      ctx.fill();
+
+      // Porta
+      ctx.fillStyle = "#1c1917";
+      ctx.fillRect(
+        screenX + obstacle.width * 0.42,
+        screenY + obstacle.height * 0.58,
+        obstacle.width * 0.18,
+        obstacle.height * 0.42
+      );
+
+      // Janelas
+      ctx.fillStyle = "#bae6fd";
+      ctx.fillRect(
+        screenX + obstacle.width * 0.14,
+        screenY + obstacle.height * 0.28,
+        obstacle.width * 0.18,
+        obstacle.height * 0.18
+      );
+
+      ctx.fillRect(
+        screenX + obstacle.width * 0.68,
+        screenY + obstacle.height * 0.28,
+        obstacle.width * 0.18,
+        obstacle.height * 0.18
+      );
+
+      // Contorno
+      ctx.strokeStyle = "rgba(0,0,0,0.35)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(screenX, screenY, obstacle.width, obstacle.height);
+    }
   });
 }
 // Desenha os itens de loot no mapa.
@@ -962,13 +1311,14 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawMap();
-  drawObstacles();
+  drawDecorations();
   drawLoots();
 
   bots.forEach((bot) => drawCharacter(bot, false));
 
   drawCharacter(player, true);
   drawBullets();
+  drawObstacles();
   drawSafeZone();
 }
 
