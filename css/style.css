@@ -131,6 +131,7 @@ body {
   width: 100vw;
   height: 100vh;
   background: #14532d;
+  touch-action: none;
 }
 
 /* Controles mobile */

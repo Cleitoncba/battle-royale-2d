@@ -50,6 +50,15 @@ const mouse = {
   down: false,
 };
 
+// Mira usada no celular.
+// Ela começa apontando para a direita.
+const mobileAim = {
+  active: false,
+  angle: 0,
+  worldX: 0,
+  worldY: 0,
+};
+
 // Câmera segue o jogador
 const camera = {
   x: 0,
@@ -71,9 +80,12 @@ let kills = 0;
 let safeZone;
 
 // Configurações principais
-const BOT_COUNT = 14;
+const BOT_COUNT = 10;
 const PLAYER_MAX_HEALTH = 100;
 const PLAYER_MAX_AMMO = 12;
+// Fator geral de velocidade do jogo.
+// Quanto menor, mais lento fica.
+const GAME_SPEED = 0.65;
 
 // Ajusta o canvas ao tamanho da tela
 function resizeCanvas() {
@@ -105,14 +117,14 @@ function createPlayer() {
     x: WORLD_WIDTH / 2,
     y: WORLD_HEIGHT / 2,
     radius: 18,
-    speed: 4,
+    speed: 2.6,
     health: PLAYER_MAX_HEALTH,
     ammo: PLAYER_MAX_AMMO,
     maxAmmo: PLAYER_MAX_AMMO,
     reloadTime: 900,
     reloading: false,
     lastShot: 0,
-    fireRate: 220,
+    fireRate: 320,
     color: "#38bdf8",
   };
 }
@@ -126,7 +138,7 @@ function createBots() {
       x: randomBetween(120, WORLD_WIDTH - 120),
       y: randomBetween(120, WORLD_HEIGHT - 120),
       radius: 17,
-      speed: randomBetween(1.3, 2.1),
+      speed: randomBetween(0.8, 1.3),
       health: 55,
       lastShot: 0,
       fireRate: randomBetween(800, 1300),
@@ -157,7 +169,7 @@ function createSafeZone() {
     y: WORLD_HEIGHT / 2,
     radius: 760,
     minRadius: 150,
-    shrinkSpeed: 0.035,
+    shrinkSpeed: 0.018,
   };
 }
 
@@ -207,7 +219,32 @@ function updateMouseWorldPosition() {
   mouse.worldX = mouse.x + camera.x;
   mouse.worldY = mouse.y + camera.y;
 }
+// Atualiza o ponto da mira mobile com base no ângulo atual.
+function updateMobileAimPosition() {
+  mobileAim.worldX = player.x + Math.cos(mobileAim.angle) * 250;
+  mobileAim.worldY = player.y + Math.sin(mobileAim.angle) * 250;
+}
+// Encontra o bot mais próximo do jogador.
+// Isso será usado no botão de tiro do celular.
+function findNearestBot() {
+  if (!bots || bots.length === 0) {
+    return null;
+  }
 
+  let nearestBot = null;
+  let nearestDistance = Infinity;
+
+  bots.forEach((bot) => {
+    const currentDistance = Math.hypot(player.x - bot.x, player.y - bot.y);
+
+    if (currentDistance < nearestDistance) {
+      nearestDistance = currentDistance;
+      nearestBot = bot;
+    }
+  });
+
+  return nearestBot;
+}
 // Recarrega arma
 function reloadWeapon() {
   if (player.reloading) return;
@@ -253,7 +290,7 @@ function shootBullet(owner, targetX, targetY) {
     x: owner.x,
     y: owner.y,
     radius: 5,
-    speed: owner === player ? 9 : 6,
+    speed: owner === player ? 6.5 : 4.5,
     damage: owner === player ? 24 : 10,
     vx: Math.cos(angle),
     vy: Math.sin(angle),
@@ -413,6 +450,7 @@ function updateCamera() {
   camera.y = clamp(camera.y, 0, WORLD_HEIGHT - canvas.height);
 
   updateMouseWorldPosition();
+  updateMobileAimPosition();
 }
 
 // Atualiza HUD
@@ -538,20 +576,39 @@ function drawCharacter(entity, isPlayer = false) {
     barHeight
   );
 
-  // Mira/direção do jogador
   if (isPlayer) {
-    const angle = Math.atan2(mouse.worldY - player.y, mouse.worldX - player.x);
+  // No celular, usa a mira mobile.
+  // No PC, usa a mira do mouse.
+  const isMobile = window.innerWidth <= 900;
 
-    ctx.strokeStyle = "#e0f2fe";
-    ctx.lineWidth = 4;
+  const angle = isMobile
+    ? mobileAim.angle
+    : Math.atan2(mouse.worldY - player.y, mouse.worldX - player.x);
+
+  ctx.strokeStyle = "#e0f2fe";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(screenX, screenY);
+  ctx.lineTo(
+    screenX + Math.cos(angle) * 34,
+    screenY + Math.sin(angle) * 34
+  );
+  ctx.stroke();
+
+  // Pequeno ponto indicando a direção da mira no celular
+  if (isMobile) {
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
     ctx.beginPath();
-    ctx.moveTo(screenX, screenY);
-    ctx.lineTo(
-      screenX + Math.cos(angle) * 32,
-      screenY + Math.sin(angle) * 32
+    ctx.arc(
+      screenX + Math.cos(angle) * 58,
+      screenY + Math.sin(angle) * 58,
+      5,
+      0,
+      Math.PI * 2
     );
-    ctx.stroke();
+    ctx.fill();
   }
+}
 }
 
 // Desenha tiros
@@ -668,30 +725,69 @@ document.querySelectorAll(".movement-buttons button").forEach((button) => {
   });
 });
 
+// Função usada pelo botão de tiro no celular.
+// Ela mira automaticamente no bot mais próximo.
+function mobileShoot() {
+  if (!gameRunning) return;
+
+  // Atira para onde a arma está apontando no celular.
+  shootBullet(player, mobileAim.worldX, mobileAim.worldY);
+}
+
 // Botão mobile de tiro
-mobileShootButton.addEventListener("touchstart", (event) => {
+mobileShootButton.addEventListener("pointerdown", (event) => {
   event.preventDefault();
-
-  if (!gameRunning) return;
-
-  // No celular, atira para a direita por padrão
-  shootBullet(player, player.x + 200, player.y);
-});
-
-mobileShootButton.addEventListener("click", () => {
-  if (!gameRunning) return;
-
-  shootBullet(player, player.x + 200, player.y);
+  mobileShoot();
 });
 
 // Botão mobile de recarregar
-mobileReloadButton.addEventListener("touchstart", (event) => {
-  event.preventDefault();
+function mobileReload() {
+  if (!gameRunning) return;
   reloadWeapon();
+}
+
+mobileReloadButton.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  mobileReload();
+});
+// Controle de mira no celular.
+// Toque e arraste no lado direito da tela para girar a arma.
+canvas.addEventListener("pointerdown", (event) => {
+  const isMobile = window.innerWidth <= 900;
+
+  if (!isMobile || !gameRunning) return;
+
+  // Só controla a mira se tocar no lado direito da tela.
+  if (event.clientX < window.innerWidth * 0.45) return;
+
+  mobileAim.active = true;
+
+  const touchWorldX = event.clientX + camera.x;
+  const touchWorldY = event.clientY + camera.y;
+
+  mobileAim.angle = Math.atan2(touchWorldY - player.y, touchWorldX - player.x);
+  updateMobileAimPosition();
 });
 
-mobileReloadButton.addEventListener("click", reloadWeapon);
+canvas.addEventListener("pointermove", (event) => {
+  const isMobile = window.innerWidth <= 900;
 
+  if (!isMobile || !gameRunning || !mobileAim.active) return;
+
+  const touchWorldX = event.clientX + camera.x;
+  const touchWorldY = event.clientY + camera.y;
+
+  mobileAim.angle = Math.atan2(touchWorldY - player.y, touchWorldX - player.x);
+  updateMobileAimPosition();
+});
+
+canvas.addEventListener("pointerup", () => {
+  mobileAim.active = false;
+});
+
+canvas.addEventListener("pointercancel", () => {
+  mobileAim.active = false;
+});
 // Registra service worker para PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
