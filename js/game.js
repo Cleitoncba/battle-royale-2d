@@ -15,6 +15,7 @@ const restartButton = document.getElementById("restartButton");
 
 const healthText = document.getElementById("healthText");
 const ammoText = document.getElementById("ammoText");
+const weaponText = document.getElementById("weaponText");
 const killsText = document.getElementById("killsText");
 const botsText = document.getElementById("botsText");
 const zoneText = document.getElementById("zoneText");
@@ -27,6 +28,9 @@ const endMessage = document.getElementById("endMessage");
 const mobileShootButton = document.getElementById("mobileShootButton");
 const mobileReloadButton = document.getElementById("mobileReloadButton");
 const mobileHealButton = document.getElementById("mobileHealButton");
+const mobilePistolButton = document.getElementById("mobilePistolButton");
+const mobileRifleButton = document.getElementById("mobileRifleButton");
+const mobileShotgunButton = document.getElementById("mobileShotgunButton");
 const joystickArea = document.getElementById("joystickArea");
 const joystickBase = document.getElementById("joystickBase");
 const joystickStick = document.getElementById("joystickStick");
@@ -103,6 +107,46 @@ let safeZone;
 const BOT_COUNT = 10;
 const PLAYER_MAX_HEALTH = 100;
 const PLAYER_MAX_AMMO = 12;
+const WEAPONS = {
+  pistol: {
+    id: "pistol",
+    name: "Pistola",
+    maxAmmo: 12,
+    damage: 24,
+    fireRate: 320,
+    bulletSpeed: 6.5,
+    bulletLife: 90,
+    bulletsPerShot: 1,
+    spread: 0,
+    barrelLength: 34,
+  },
+
+  rifle: {
+    id: "rifle",
+    name: "Rifle",
+    maxAmmo: 25,
+    damage: 16,
+    fireRate: 150,
+    bulletSpeed: 7.8,
+    bulletLife: 100,
+    bulletsPerShot: 1,
+    spread: 0.035,
+    barrelLength: 38,
+  },
+
+  shotgun: {
+    id: "shotgun",
+    name: "Shotgun",
+    maxAmmo: 6,
+    damage: 13,
+    fireRate: 650,
+    bulletSpeed: 6.2,
+    bulletLife: 40,
+    bulletsPerShot: 5,
+    spread: 0.32,
+    barrelLength: 32,
+  },
+};
 // Configurações para deixar o jogo mais jogável no celular
 const BOT_BULLET_DAMAGE = 4;
 const ZONE_DAMAGE_PLAYER = 0.025;
@@ -150,8 +194,21 @@ function createPlayer() {
     radius: 18,
     speed: 2.6,
     health: PLAYER_MAX_HEALTH,
-    ammo: PLAYER_MAX_AMMO,
-    maxAmmo: PLAYER_MAX_AMMO,
+    currentWeapon: "pistol",
+
+weaponsOwned: {
+  pistol: true,
+  rifle: false,
+  shotgun: false,
+},
+
+ammoByWeapon: {
+  pistol: WEAPONS.pistol.maxAmmo,
+  rifle: 0,
+  shotgun: 0,
+},
+
+maxAmmo: WEAPONS.pistol.maxAmmo,
     medkits: START_MEDKITS,
     healing: false,
     shield: START_SHIELD,
@@ -189,7 +246,7 @@ function createBots() {
 function createLoots() {
   loots = [];
 
-  const lootTypes = ["medkit", "ammo", "shield"];
+  const lootTypes = ["medkit", "ammo", "shield", "rifle", "shotgun"];
 
   for (let i = 0; i < LOOT_COUNT; i++) {
     const type = lootTypes[Math.floor(Math.random() * lootTypes.length)];
@@ -357,17 +414,34 @@ function applyDamageToPlayer(amount) {
     player.health -= amount;
   }
 }
+// Retorna a arma atual do jogador.
+function getCurrentWeapon() {
+  return WEAPONS[player.currentWeapon];
+}
+
+// Troca a arma do jogador, se ele já tiver coletado essa arma.
+function switchWeapon(weaponId) {
+  if (!gameRunning || !player) return;
+  if (!WEAPONS[weaponId]) return;
+  if (!player.weaponsOwned[weaponId]) return;
+
+  player.currentWeapon = weaponId;
+  player.maxAmmo = WEAPONS[weaponId].maxAmmo;
+}
 // Recarrega arma
 function reloadWeapon() {
   if (player.reloading) return;
-  if (player.ammo === player.maxAmmo) return;
+
+  const weapon = getCurrentWeapon();
+
+  if (player.ammoByWeapon[player.currentWeapon] === weapon.maxAmmo) return;
 
   player.reloading = true;
 
   setTimeout(() => {
     if (!gameRunning) return;
 
-    player.ammo = player.maxAmmo;
+    player.ammoByWeapon[player.currentWeapon] = weapon.maxAmmo;
     player.reloading = false;
   }, player.reloadTime);
 }
@@ -376,47 +450,53 @@ function reloadWeapon() {
 function shootBullet(owner, targetX, targetY) {
   const now = Date.now();
 
-  // Controle de cadência do jogador
+  let weapon = null;
+
   if (owner === player) {
+    weapon = getCurrentWeapon();
+
     if (player.reloading) return;
-    if (player.ammo <= 0) {
+
+    if (player.ammoByWeapon[player.currentWeapon] <= 0) {
       reloadWeapon();
       return;
     }
 
-    if (now - player.lastShot < player.fireRate) return;
+    if (now - player.lastShot < weapon.fireRate) return;
 
     player.lastShot = now;
-    player.ammo--;
-  }
-
-  // Controle de cadência dos bots
-  if (owner !== player) {
+    player.ammoByWeapon[player.currentWeapon]--;
+  } else {
     if (now - owner.lastShot < owner.fireRate) return;
     owner.lastShot = now;
   }
 
- // Se quem está atirando for o jogador, usa o ângulo oficial da arma.
-// Se for bot, calcula normalmente mirando no alvo.
-const angle = owner === player
-  ? player.aimAngle
-  : Math.atan2(targetY - owner.y, targetX - owner.x);
+  const baseAngle = owner === player
+    ? player.aimAngle
+    : Math.atan2(targetY - owner.y, targetX - owner.x);
 
-// Faz o tiro sair da ponta do canhão, não do centro do personagem.
-const barrelLength = owner === player ? 34 : 22;
+  const bulletsPerShot = owner === player ? weapon.bulletsPerShot : 1;
+  const spread = owner === player ? weapon.spread : 0;
+  const barrelLength = owner === player ? weapon.barrelLength : 22;
 
-bullets.push({
-  x: owner.x + Math.cos(angle) * barrelLength,
-  y: owner.y + Math.sin(angle) * barrelLength,
-  radius: 5,
-  speed: owner === player ? 6.5 : 4.5,
-  damage: owner === player ? 24 : BOT_BULLET_DAMAGE,
-  vx: Math.cos(angle),
-  vy: Math.sin(angle),
-  owner,
-  life: 90,
-  color: owner === player ? "#facc15" : "#fb7185",
-});
+  for (let i = 0; i < bulletsPerShot; i++) {
+    const middle = (bulletsPerShot - 1) / 2;
+    const angleOffset = (i - middle) * spread;
+    const angle = baseAngle + angleOffset;
+
+    bullets.push({
+      x: owner.x + Math.cos(angle) * barrelLength,
+      y: owner.y + Math.sin(angle) * barrelLength,
+      radius: owner === player && player.currentWeapon === "shotgun" ? 4 : 5,
+      speed: owner === player ? weapon.bulletSpeed : 4.5,
+      damage: owner === player ? weapon.damage : BOT_BULLET_DAMAGE,
+      vx: Math.cos(angle),
+      vy: Math.sin(angle),
+      owner,
+      life: owner === player ? weapon.bulletLife : 90,
+      color: owner === player ? "#facc15" : "#fb7185",
+    });
+  }
 }
 
 // Movimento do jogador
@@ -518,12 +598,28 @@ function collectLoot(loot) {
   }
 
   if (loot.type === "ammo") {
-    player.ammo = Math.min(player.maxAmmo, player.ammo + AMMO_LOOT_AMOUNT);
-  }
+  const weapon = getCurrentWeapon();
+
+  player.ammoByWeapon[player.currentWeapon] = Math.min(
+    weapon.maxAmmo,
+    player.ammoByWeapon[player.currentWeapon] + AMMO_LOOT_AMOUNT
+  );
+}
 
   if (loot.type === "shield") {
     player.shield = Math.min(MAX_SHIELD, player.shield + SHIELD_LOOT_AMOUNT);
   }
+  if (loot.type === "rifle") {
+  player.weaponsOwned.rifle = true;
+  player.ammoByWeapon.rifle = WEAPONS.rifle.maxAmmo;
+  switchWeapon("rifle");
+}
+
+if (loot.type === "shotgun") {
+  player.weaponsOwned.shotgun = true;
+  player.ammoByWeapon.shotgun = WEAPONS.shotgun.maxAmmo;
+  switchWeapon("shotgun");
+}
 }
 
 // Verifica se o jogador encostou em algum loot.
@@ -614,7 +710,12 @@ function updateHUD() {
   ? "curando..."
   : Math.max(0, Math.floor(player.health));
 
-  ammoText.textContent = player.reloading ? "..." : player.ammo;
+  const weapon = getCurrentWeapon();
+
+weaponText.textContent = weapon.name;
+ammoText.textContent = player.reloading
+  ? "..."
+  : player.ammoByWeapon[player.currentWeapon];
   killsText.textContent = kills;
   botsText.textContent = bots.length;
   medkitsText.textContent = player.medkits;
@@ -729,6 +830,15 @@ function drawLoots() {
       color = "#38bdf8";
       icon = "S";
     }
+    if (loot.type === "rifle") {
+      color = "#a855f7";
+      icon = "R";
+}
+
+    if (loot.type === "shotgun") {
+    color = "#f97316";
+    icon = "SG";
+}
 
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -740,7 +850,7 @@ function drawLoots() {
     ctx.stroke();
 
     ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 15px Arial";
+    ctx.font = loot.type === "shotgun" ? "bold 11px Arial" : "bold 15px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(icon, screenX, screenY + 1);
@@ -783,12 +893,13 @@ function drawCharacter(entity, isPlayer = false) {
   const angle = player.aimAngle;
   const isMobile = window.innerWidth <= 900;
 
-  const barrelLength = 34;
+  const weapon = getCurrentWeapon();
+  const barrelLength = weapon.barrelLength;
   const barrelStart = 8;
 
   // Canhão/arma
   ctx.strokeStyle = "#e0f2fe";
-  ctx.lineWidth = 5;
+  ctx.lineWidth = player.currentWeapon === "shotgun" ? 7 : 5;
   ctx.lineCap = "round";
 
   ctx.beginPath();
@@ -891,6 +1002,17 @@ window.addEventListener("keydown", (event) => {
   }
   if (key === "h" && gameRunning) {
   useMedkit();
+}
+  if (key === "1" && gameRunning) {
+  switchWeapon("pistol");
+}
+
+if (key === "2" && gameRunning) {
+  switchWeapon("rifle");
+}
+
+if (key === "3" && gameRunning) {
+  switchWeapon("shotgun");
 }
 });
 
@@ -1069,6 +1191,24 @@ mobileHealButton.addEventListener("pointerdown", (event) => {
   event.preventDefault();
   event.stopPropagation();
   mobileHeal();
+});
+// Botões mobile para trocar de arma
+mobilePistolButton.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  switchWeapon("pistol");
+});
+
+mobileRifleButton.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  switchWeapon("rifle");
+});
+
+mobileShotgunButton.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  switchWeapon("shotgun");
 });
 /// ===============================
 // MIRA MOBILE COM MULTI-TOQUE

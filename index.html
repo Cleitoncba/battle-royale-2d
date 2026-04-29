@@ -37,6 +37,7 @@
         <p><strong>Clique:</strong> atirar</p>
         <p><strong>R:</strong> recarregar</p>
         <p><strong>H:</strong> usar kit médico</p>
+        <p><strong>1/2/3:</strong> trocar arma</p>
       </div>
     </div>
   </section>
@@ -46,7 +47,8 @@
     <!-- HUD superior -->
     <div class="hud">
       <div>❤️ Vida: <span id="healthText">100</span></div>
-      <div>🔫 Munição: <span id="ammoText">12</span></div>
+      <div>🔫 Arma: <span id="weaponText">Pistola</span></div>
+      <div>🎯 Munição: <span id="ammoText">12</span></div>
       <div>☠️ Kills: <span id="killsText">0</span></div>
       <div>👥 Inimigos: <span id="botsText">0</span></div>
       <div>🩹 Kits: <span id="medkitsText">2</span></div>
@@ -58,17 +60,23 @@
     <canvas id="gameCanvas"></canvas>
 
     <!-- Controles mobile -->
-    <div id="mobileControls" class="mobile-controls">
+<div id="mobileControls" class="mobile-controls">
       <div id="joystickArea" class="joystick-area">
   <div id="joystickBase" class="joystick-base">
     <div id="joystickStick" class="joystick-stick"></div>
   </div>
 </div>
 
-      <div class="action-buttons">
+<div class="action-buttons">
   <button id="mobileShootButton">Atirar</button>
   <button id="mobileReloadButton">Recarregar</button>
   <button id="mobileHealButton">Curar</button>
+
+  <div class="weapon-buttons">
+    <button id="mobilePistolButton">Pistola</button>
+    <button id="mobileRifleButton">Rifle</button>
+    <button id="mobileShotgunButton">Shotgun</button>
+  </div>
 </div>
     </div>
   </main>
