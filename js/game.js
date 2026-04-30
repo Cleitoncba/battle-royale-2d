@@ -688,6 +688,144 @@ function collidesWithAnyObstacle(entityX, entityY, entityRadius) {
     return isCollidingWithObstacle(entityX, entityY, entityRadius, obstacle);
   });
 }
+// Verifica se uma posição está livre para nascer.
+// Usa uma margem maior que o raio real para evitar spawn grudado em obstáculos.
+function isSpawnPositionFree(x, y, radius, minDistanceFromPlayer = 180) {
+  const safetyMargin = 70;
+
+  // Evita nascer perto demais das bordas do mapa.
+  if (
+    x < 120 ||
+    x > WORLD_WIDTH - 120 ||
+    y < 120 ||
+    y > WORLD_HEIGHT - 120
+  ) {
+    return false;
+  }
+
+  // Evita nascer dentro ou muito grudado em obstáculos.
+  const tooCloseToObstacle = obstacles.some((obstacle) => {
+    if (obstacle.type === "tree") {
+      const distanceToTree = Math.hypot(x - obstacle.x, y - obstacle.y);
+
+      return distanceToTree < radius + obstacle.radius + safetyMargin;
+    }
+
+    if (obstacle.type === "rock") {
+      return circleRectCollision(
+        x,
+        y,
+        radius + safetyMargin,
+        obstacle.x - obstacle.width / 2,
+        obstacle.y - obstacle.height / 2,
+        obstacle.width,
+        obstacle.height
+      );
+    }
+
+    if (obstacle.type === "house") {
+      return circleRectCollision(
+        x,
+        y,
+        radius + safetyMargin,
+        obstacle.x,
+        obstacle.y,
+        obstacle.width,
+        obstacle.height
+      );
+    }
+
+    return false;
+  });
+
+  if (tooCloseToObstacle) {
+    return false;
+  }
+
+  // Evita nascer muito perto do jogador.
+  if (player) {
+    const distanceFromPlayer = Math.hypot(x - player.x, y - player.y);
+
+    if (distanceFromPlayer < minDistanceFromPlayer) {
+      return false;
+    }
+  }
+
+  // Evita nascer em cima de outro bot.
+  const tooCloseToAnotherBot = bots.some((bot) => {
+    const distanceFromBot = Math.hypot(x - bot.x, y - bot.y);
+    return distanceFromBot < radius + bot.radius + 70;
+  });
+
+  if (tooCloseToAnotherBot) {
+    return false;
+  }
+
+  return true;
+}
+// Move uma entidade respeitando colisão com obstáculos.
+// Retorna true se conseguiu mover, false se ficou bloqueada.
+function moveEntityWithCollision(entity, moveX, moveY) {
+  const nextX = entity.x + moveX;
+  const nextY = entity.y + moveY;
+
+  const limitedNextX = clamp(nextX, entity.radius, WORLD_WIDTH - entity.radius);
+  const limitedNextY = clamp(nextY, entity.radius, WORLD_HEIGHT - entity.radius);
+
+  let moved = false;
+
+  if (!collidesWithAnyObstacle(limitedNextX, entity.y, entity.radius)) {
+    entity.x = limitedNextX;
+    moved = true;
+  }
+
+  if (!collidesWithAnyObstacle(entity.x, limitedNextY, entity.radius)) {
+    entity.y = limitedNextY;
+    moved = true;
+  }
+
+  return moved;
+}
+// Empurra suavemente uma entidade para fora de obstáculos.
+// Não teletransporta, só corrige aos poucos.
+function pushEntityOutOfObstacles(entity) {
+  obstacles.forEach((obstacle) => {
+    if (!isCollidingWithObstacle(entity.x, entity.y, entity.radius, obstacle)) {
+      return;
+    }
+
+    let pushAngle = 0;
+
+    if (obstacle.type === "tree") {
+      pushAngle = Math.atan2(entity.y - obstacle.y, entity.x - obstacle.x);
+    }
+
+    if (obstacle.type === "rock") {
+      pushAngle = Math.atan2(
+        entity.y - obstacle.y,
+        entity.x - obstacle.x
+      );
+    }
+
+    if (obstacle.type === "house") {
+      const houseCenterX = obstacle.x + obstacle.width / 2;
+      const houseCenterY = obstacle.y + obstacle.height / 2;
+
+      pushAngle = Math.atan2(
+        entity.y - houseCenterY,
+        entity.x - houseCenterX
+      );
+    }
+
+    const pushForce = 2.2;
+
+    entity.x += Math.cos(pushAngle) * pushForce;
+    entity.y += Math.sin(pushAngle) * pushForce;
+
+    entity.x = clamp(entity.x, entity.radius, WORLD_WIDTH - entity.radius);
+    entity.y = clamp(entity.y, entity.radius, WORLD_HEIGHT - entity.radius);
+  });
+}
 // Cria o jogador
 function createPlayer() {
   return {
@@ -733,18 +871,28 @@ function createBots() {
   const selectedDifficulty = getSelectedDifficulty();
 
   for (let i = 0; i < selectedDifficulty.botCount; i++) {
-    let botX;
-    let botY;
-    let attempts = 0;
+    let botX = WORLD_WIDTH / 2;
+    let botY = WORLD_HEIGHT / 2;
+    let foundFreePosition = false;
 
-    do {
-      botX = randomBetween(120, WORLD_WIDTH - 120);
-      botY = randomBetween(120, WORLD_HEIGHT - 120);
-      attempts++;
-    } while (
-      collidesWithAnyObstacle(botX, botY, 17) &&
-      attempts < 80
-    );
+    // Tenta muitas vezes achar uma posição realmente livre.
+    for (let attempt = 0; attempt < 600; attempt++) {
+      const testX = randomBetween(140, WORLD_WIDTH - 140);
+      const testY = randomBetween(140, WORLD_HEIGHT - 140);
+
+      if (isSpawnPositionFree(testX, testY, 17, 260)) {
+        botX = testX;
+        botY = testY;
+        foundFreePosition = true;
+        break;
+      }
+    }
+
+    // Se não achou posição segura, pula esse bot.
+    // Melhor ter menos bots do que bot preso dentro de obstáculo.
+    if (!foundFreePosition) {
+      continue;
+    }
 
     bots.push({
       x: botX,
@@ -761,6 +909,13 @@ function createBots() {
         selectedDifficulty.botFireRateMax
       ),
       color: "#ef4444",
+
+      state: "wander",
+      wanderAngle: randomBetween(0, Math.PI * 2),
+      nextDecisionTime: Date.now() + randomBetween(500, 1600),
+      stuckTimer: 0,
+      lastX: botX,
+      lastY: botY,
     });
   }
 }
@@ -774,9 +929,26 @@ function createLoots() {
   for (let i = 0; i < LOOT_COUNT; i++) {
     const type = lootTypes[Math.floor(Math.random() * lootTypes.length)];
 
+    let lootX = WORLD_WIDTH / 2;
+    let lootY = WORLD_HEIGHT / 2;
+    let attempts = 0;
+    let foundFreePosition = false;
+
+    while (!foundFreePosition && attempts < 150) {
+      lootX = randomBetween(80, WORLD_WIDTH - 80);
+      lootY = randomBetween(80, WORLD_HEIGHT - 80);
+
+      foundFreePosition = !collidesWithAnyObstacle(lootX, lootY, 22);
+      attempts++;
+    }
+
+    if (!foundFreePosition) {
+      continue;
+    }
+
     loots.push({
-      x: randomBetween(80, WORLD_WIDTH - 80),
-      y: randomBetween(80, WORLD_HEIGHT - 80),
+      x: lootX,
+      y: lootY,
       radius: 14,
       type,
       pulse: randomBetween(0, Math.PI * 2),
@@ -1203,20 +1375,8 @@ if (isMobile) {
 const nextX = player.x + dx * player.speed;
 const nextY = player.y + dy * player.speed;
 
-// Movimento separado por eixo.
-// Isso evita travar totalmente quando encosta em uma parede.
-const limitedNextX = clamp(nextX, player.radius, WORLD_WIDTH - player.radius);
-const limitedNextY = clamp(nextY, player.radius, WORLD_HEIGHT - player.radius);
-
-// Testa primeiro movimento no eixo X.
-if (!collidesWithAnyObstacle(limitedNextX, player.y, player.radius)) {
-  player.x = limitedNextX;
-}
-
-// Depois testa movimento no eixo Y.
-if (!collidesWithAnyObstacle(player.x, limitedNextY, player.radius)) {
-  player.y = limitedNextY;
-}
+moveEntityWithCollision(player, dx * player.speed, dy * player.speed);
+pushEntityOutOfObstacles(player);
 
   // Dano fora da zona segura
   const distFromZoneCenter = Math.hypot(player.x - safeZone.x, player.y - safeZone.y);
@@ -1229,45 +1389,194 @@ if (!collidesWithAnyObstacle(player.x, limitedNextY, player.radius)) {
     endGame(false);
   }
 }
+// Atualiza a decisão de comportamento do bot.
+function updateBotDecision(bot) {
+  const now = Date.now();
 
+  if (now < bot.nextDecisionTime) return;
+
+  const distToPlayer = distance(bot, player);
+  const distToZoneCenter = Math.hypot(bot.x - safeZone.x, bot.y - safeZone.y);
+  // Considera perigo antes mesmo de sair totalmente da zona.
+  // Assim o bot começa a voltar antes de tomar dano.
+  const outsideZone = distToZoneCenter > safeZone.radius - 120;
+
+  const selectedDifficulty = getSelectedDifficulty();
+
+  const attackDistance =
+    selectedDifficulty.id === "hard" ? 430 :
+    selectedDifficulty.id === "easy" ? 310 :
+    360;
+
+  const chaseDistance =
+    selectedDifficulty.id === "hard" ? 850 :
+    selectedDifficulty.id === "easy" ? 560 :
+    700;
+
+  if (outsideZone) {
+    bot.state = "escapeZone";
+  } else if (distToPlayer < attackDistance) {
+    bot.state = "attack";
+  } else if (distToPlayer < chaseDistance) {
+    bot.state = "chase";
+  } else {
+    bot.state = "wander";
+  }
+
+  // Muda ângulo aleatório de tempos em tempos.
+  if (bot.state === "wander") {
+    bot.wanderAngle += randomBetween(-1.2, 1.2);
+  }
+
+  bot.nextDecisionTime = now + randomBetween(500, 1300);
+}
+
+// Move o bot tentando evitar ficar preso.
+// Move o bot tentando evitar obstáculos.
+// Se o caminho principal estiver bloqueado, ele tenta caminhos laterais.
+function moveBotSmart(bot, angle, speedMultiplier = 1) {
+  const speed = bot.speed * speedMultiplier;
+
+  // Lista de ângulos alternativos.
+  // Primeiro tenta ir reto, depois diagonais/laterais.
+  const angleOptions = [
+    angle,
+    angle + 0.45,
+    angle - 0.45,
+    angle + 0.9,
+    angle - 0.9,
+    angle + Math.PI / 2,
+    angle - Math.PI / 2,
+    angle + Math.PI,
+  ];
+
+  let moved = false;
+
+  for (const testAngle of angleOptions) {
+    const moveX = Math.cos(testAngle) * speed;
+    const moveY = Math.sin(testAngle) * speed;
+
+    const oldX = bot.x;
+    const oldY = bot.y;
+
+    const didMove = moveEntityWithCollision(bot, moveX, moveY);
+
+    const movedDistance = Math.hypot(bot.x - oldX, bot.y - oldY);
+
+    if (didMove && movedDistance > 0.05) {
+      moved = true;
+
+      // Se conseguiu mover por um ângulo alternativo, salva esse ângulo.
+      bot.wanderAngle = testAngle;
+      break;
+    }
+  }
+
+  // Detecta se o bot ficou preso.
+  const totalMovedDistance = Math.hypot(bot.x - bot.lastX, bot.y - bot.lastY);
+
+  if (!moved || totalMovedDistance < 0.05) {
+    bot.stuckTimer++;
+
+    // Muda bastante a direção quando prende.
+    bot.wanderAngle += randomBetween(1.4, 3.2);
+  } else {
+    bot.stuckTimer = 0;
+  }
+
+  // Se ficou preso por muito tempo, tenta empurrar para longe do obstáculo.
+  if (bot.stuckTimer > 18) {
+  // Em vez de teletransportar, muda bastante a direção e tenta sair andando.
+  bot.wanderAngle += randomBetween(1.6, 3.4);
+
+  const emergencyAngle = bot.wanderAngle;
+
+  moveEntityWithCollision(
+    bot,
+    Math.cos(emergencyAngle) * bot.speed * 1.8,
+    Math.sin(emergencyAngle) * bot.speed * 1.8
+  );
+
+  bot.stuckTimer = 0;
+}
+
+  bot.lastX = bot.x;
+  bot.lastY = bot.y;
+}
+
+// Verifica de forma simples se existe obstáculo entre dois pontos.
+// Ajuda o bot a não atirar através de casas/árvores/pedras.
+function hasLineOfSight(fromX, fromY, toX, toY) {
+  const steps = 20;
+
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const checkX = fromX + (toX - fromX) * t;
+    const checkY = fromY + (toY - fromY) * t;
+
+    if (collidesWithAnyObstacle(checkX, checkY, 4)) {
+      return false;
+    }
+  }
+
+  return true;
+}
 // Atualiza bots
 function updateBots() {
   bots.forEach((bot) => {
+    pushEntityOutOfObstacles(bot);
+    
+    updateBotDecision(bot);
+
     const distToPlayer = distance(bot, player);
+    const angleToPlayer = Math.atan2(player.y - bot.y, player.x - bot.x);
+    const angleToZoneCenter = Math.atan2(safeZone.y - bot.y, safeZone.x - bot.x);
 
-    // Se estiver perto, persegue o jogador
-    if (distToPlayer < 520) {
-      const angle = Math.atan2(player.y - bot.y, player.x - bot.x);
+    // Fora da zona: corre para o centro da zona.
+    if (bot.state === "escapeZone") {
+  // Prioridade máxima: voltar para dentro da zona.
+  moveBotSmart(bot, angleToZoneCenter, 1.75);
 
-      const nextBotX = bot.x + Math.cos(angle) * bot.speed;
-const nextBotY = bot.y + Math.sin(angle) * bot.speed;
+  // Se estiver muito fora, força ainda mais a entrada.
+  const distFromZoneCenter = Math.hypot(bot.x - safeZone.x, bot.y - safeZone.y);
 
-if (!collidesWithAnyObstacle(nextBotX, bot.y, bot.radius)) {
-  bot.x = nextBotX;
+  if (distFromZoneCenter > safeZone.radius) {
+    moveBotSmart(bot, angleToZoneCenter, 2.1);
+  }
 }
 
-if (!collidesWithAnyObstacle(bot.x, nextBotY, bot.radius)) {
-  bot.y = nextBotY;
-}
+    // Persegue o jogador.
+    if (bot.state === "chase") {
+      moveBotSmart(bot, angleToPlayer, 1);
+    }
 
-      // Atira no jogador
-      if (distToPlayer < 430) {
-        shootBullet(bot, player.x, player.y);
+    // Ataca: para ou anda devagar, mantendo distância.
+    if (bot.state === "attack") {
+      if (distToPlayer > 240) {
+        moveBotSmart(bot, angleToPlayer, 0.55);
       }
-    } else {
-      // Movimento simples aleatório
-      const randomNextX = bot.x + Math.sin(Date.now() / 700 + bot.x) * 0.45;
-const randomNextY = bot.y + Math.cos(Date.now() / 700 + bot.y) * 0.45;
 
-if (!collidesWithAnyObstacle(randomNextX, bot.y, bot.radius)) {
-  bot.x = randomNextX;
-}
+      if (distToPlayer < 150) {
+        // Se estiver perto demais, recua.
+        moveBotSmart(bot, angleToPlayer + Math.PI, 0.75);
+      }
 
-if (!collidesWithAnyObstacle(bot.x, randomNextY, bot.radius)) {
-  bot.y = randomNextY;
+      // Atira no jogador.
+      if (
+  bot.state !== "escapeZone" &&
+  distToPlayer < 430 &&
+  hasLineOfSight(bot.x, bot.y, player.x, player.y)
+) {
+  shootBullet(bot, player.x, player.y);
 }
     }
 
+    // Vagueia pelo mapa.
+    if (bot.state === "wander") {
+      moveBotSmart(bot, bot.wanderAngle, 0.55);
+    }
+
+    // Garante que não saia do mundo.
     bot.x = clamp(bot.x, bot.radius, WORLD_WIDTH - bot.radius);
     bot.y = clamp(bot.y, bot.radius, WORLD_HEIGHT - bot.radius);
 
@@ -1915,13 +2224,16 @@ function draw() {
 
   drawMap();
   drawDecorations();
+
+  // Obstáculos primeiro, para não esconderem totalmente bots e jogador.
+  drawObstacles();
+
   drawLoots();
 
   bots.forEach((bot) => drawCharacter(bot, false));
 
   drawCharacter(player, true);
   drawBullets();
-  drawObstacles();
   drawSafeZone();
 
   drawMiniMap();
