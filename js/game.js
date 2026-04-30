@@ -52,6 +52,8 @@ function hideMiniMap() {
   miniMapCanvas.style.setProperty("opacity", "0", "important");
 }
 
+const rankingList = document.getElementById("rankingList");
+const clearRankingButton = document.getElementById("clearRankingButton");
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 const endScreen = document.getElementById("endScreen");
@@ -367,6 +369,9 @@ const SHIELD_LOOT_AMOUNT = 25;
 const COINS_PER_KILL = 10;
 const VICTORY_BONUS = 50;
 const DEFEAT_PENALTY = 5;
+
+const RANKING_STORAGE_KEY = "battleRoyale2dRanking";
+const MAX_RANKING_ITEMS = 10;
 const COINS_STORAGE_KEY = "battleRoyale2dCoins";
 
 const SKINS_STORAGE_KEY = "battleRoyale2dOwnedSkins";
@@ -473,6 +478,93 @@ function applyDifficultySettings() {
   const selectedDifficulty = getSelectedDifficulty();
 
   BOT_BULLET_DAMAGE = selectedDifficulty.botDamage;
+}
+// Carrega o ranking local.
+function getLocalRanking() {
+  const savedRanking = localStorage.getItem(RANKING_STORAGE_KEY);
+
+  if (!savedRanking) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(savedRanking);
+  } catch {
+    return [];
+  }
+}
+
+// Salva o ranking local.
+function saveLocalRanking(ranking) {
+  localStorage.setItem(RANKING_STORAGE_KEY, JSON.stringify(ranking));
+}
+
+// Cria um registro da partida no ranking.
+function addMatchToRanking(victory, matchCoins) {
+  const selectedDifficulty = getSelectedDifficulty();
+
+  const ranking = getLocalRanking();
+
+  ranking.push({
+    kills,
+    coins: matchCoins,
+    victory,
+    difficulty: selectedDifficulty.name,
+    date: new Date().toLocaleDateString("pt-BR"),
+  });
+
+  ranking.sort((a, b) => {
+    if (b.victory !== a.victory) {
+      return Number(b.victory) - Number(a.victory);
+    }
+
+    if (b.kills !== a.kills) {
+      return b.kills - a.kills;
+    }
+
+    return b.coins - a.coins;
+  });
+
+  saveLocalRanking(ranking.slice(0, MAX_RANKING_ITEMS));
+}
+
+// Atualiza o ranking no menu.
+function updateRankingUI() {
+  if (!rankingList) return;
+
+  const ranking = getLocalRanking();
+
+  if (ranking.length === 0) {
+    rankingList.innerHTML = `
+      <p class="empty-ranking">Nenhuma partida registrada ainda.</p>
+    `;
+    return;
+  }
+
+  rankingList.innerHTML = ranking
+    .map((item, index) => {
+      const result = item.victory ? "Vitória" : "Derrota";
+
+      return `
+        <div class="ranking-item">
+          <div class="ranking-position">${index + 1}</div>
+
+          <div class="ranking-info">
+            <strong>${result} — ${item.kills} kills</strong>
+            <small>
+              ${item.coins} coins • ${item.difficulty} • ${item.date}
+            </small>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+// Limpa ranking local.
+function clearLocalRanking() {
+  localStorage.removeItem(RANKING_STORAGE_KEY);
+  updateRankingUI();
 }
 // Carrega o total de coins salvo no navegador.
 function getTotalCoins() {
@@ -1140,8 +1232,11 @@ function endGame(victory) {
   const newTotalCoins = getTotalCoins() + matchCoins;
 
   saveTotalCoins(newTotalCoins);
+  addMatchToRanking(victory, matchCoins);
+
   updateMenuCoins();
   updateShopUI();
+  updateRankingUI();
   
   pauseScreen.classList.remove("active");
   hideMiniMap();
@@ -2593,10 +2688,21 @@ difficultyButtons.forEach((button) => {
     updateDifficultyUI();
   });
 });
+// Botão para limpar o ranking local
+if (clearRankingButton) {
+  clearRankingButton.addEventListener("click", () => {
+    const confirmed = confirm("Tem certeza que deseja limpar o ranking local?");
+
+    if (!confirmed) return;
+
+    clearLocalRanking();
+  });
+}
 // Atualiza menu e loja quando o jogo abre.
 updateMenuCoins();
 updateShopUI();
 updateDifficultyUI();
+updateRankingUI();
 hideMiniMap();
 
 // Registra service worker para PWA
