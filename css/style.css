@@ -452,4 +452,57 @@ body {
     font-size: 12px;
   }
 }
+/* Botão dentro do HUD */
+.hud-button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.18);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  color: #fef3c7;
+  font-weight: 800;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+}
+
+/* Botão secundário do menu */
+.secondary-button {
+  width: 100%;
+  padding: 14px 18px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 16px;
+  background: #334155;
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.secondary-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
+/* Botão perigoso, usado para sair da partida */
+.danger-button {
+  width: 100%;
+  padding: 14px 18px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 16px;
+  background: #ef4444;
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.danger-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
 }

@@ -10,8 +10,15 @@ const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 const endScreen = document.getElementById("endScreen");
 
+const pauseScreen = document.getElementById("pauseScreen");
+
 const startButton = document.getElementById("startButton");
 const restartButton = document.getElementById("restartButton");
+
+const pauseButton = document.getElementById("pauseButton");
+const resumeButton = document.getElementById("resumeButton");
+const restartPauseButton = document.getElementById("restartPauseButton");
+const backToMenuButton = document.getElementById("backToMenuButton");
 
 const healthText = document.getElementById("healthText");
 const ammoText = document.getElementById("ammoText");
@@ -56,6 +63,7 @@ const WORLD_HEIGHT = 1600;
 
 // Estado geral do jogo
 let gameRunning = false;
+let gamePaused = false;
 let animationId = null;
 
 // Teclas pressionadas
@@ -716,13 +724,52 @@ function createSafeZone() {
     shrinkSpeed: 0.018,
   };
 }
+// Pausa a partida atual.
+function pauseGame() {
+  if (!gameRunning || gamePaused) return;
 
+  gamePaused = true;
+  pauseScreen.classList.add("active");
+
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+  }
+}
+
+// Continua a partida pausada.
+function resumeGame() {
+  if (!gameRunning || !gamePaused) return;
+
+  gamePaused = false;
+  pauseScreen.classList.remove("active");
+  gameLoop();
+}
+
+// Volta para a tela inicial sem dar coins.
+function backToMenu() {
+  gameRunning = false;
+  gamePaused = false;
+
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+  }
+
+  pauseScreen.classList.remove("active");
+  endScreen.classList.remove("active");
+  startScreen.classList.add("active");
+
+  updateMenuCoins();
+  updateShopUI();
+  updateDifficultyUI();
+}
 // Inicia uma nova partida
 function startGame() {
   startScreen.classList.remove("active");
   endScreen.classList.remove("active");
+  pauseScreen.classList.remove("active");
 
   gameRunning = true;
+  gamePaused = false;
   kills = 0;
 
   applyDifficultySettings();
@@ -746,6 +793,7 @@ function startGame() {
 // Finaliza a partida
 function endGame(victory) {
   gameRunning = false;
+  gamePaused = false;
 
   if (animationId) {
     cancelAnimationFrame(animationId);
@@ -757,7 +805,8 @@ function endGame(victory) {
   saveTotalCoins(newTotalCoins);
   updateMenuCoins();
   updateShopUI();
-
+  
+  pauseScreen.classList.remove("active");
   endScreen.classList.add("active");
 
   resultKillsText.textContent = kills;
@@ -1629,7 +1678,7 @@ function draw() {
 
 // Loop principal do jogo
 function gameLoop() {
-  if (!gameRunning) return;
+  if (!gameRunning || gamePaused) return;
 
   updatePlayer();
   updateBots();
@@ -1647,6 +1696,16 @@ function gameLoop() {
 // Eventos de teclado
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
+
+  if (key === "escape") {
+  if (gamePaused) {
+    resumeGame();
+  } else {
+    pauseGame();
+  }
+
+  return;
+}
 
   if (key in keys) {
     keys[key] = true;
@@ -1703,7 +1762,10 @@ canvas.addEventListener("mouseup", () => {
 // Botões do menu
 startButton.addEventListener("click", startGame);
 restartButton.addEventListener("click", startGame);
-
+pauseButton.addEventListener("click", pauseGame);
+resumeButton.addEventListener("click", resumeGame);
+restartPauseButton.addEventListener("click", startGame);
+backToMenuButton.addEventListener("click", backToMenu);
 // ===============================
 // JOYSTICK MOBILE
 // ===============================
@@ -1756,7 +1818,7 @@ function updateJoystickFromPointer(event) {
 joystickArea.addEventListener("pointerdown", (event) => {
   const isMobile = window.innerWidth <= 900;
 
-  if (!isMobile || !gameRunning) return;
+  if (!isMobile || !gameRunning || gamePaused) return;
 
   event.preventDefault();
   event.stopPropagation();
@@ -1807,7 +1869,7 @@ joystickArea.addEventListener("pointercancel", (event) => {
 // Função usada pelo botão de tiro no celular.
 // Ela mira automaticamente no bot mais próximo.
 function mobileShoot() {
-  if (!gameRunning) return;
+  if (!gameRunning || gamePaused) return;
 
   // O alvo aqui é só uma referência.
   // A função shootBullet vai usar player.aimAngle quando o dono for o jogador.
@@ -1827,7 +1889,7 @@ mobileShootButton.addEventListener("pointerdown", (event) => {
 
 // Botão mobile de recarregar
 function mobileReload() {
-  if (!gameRunning) return;
+  if (!gameRunning || gamePaused) return;
   reloadWeapon();
 }
 
@@ -1838,7 +1900,7 @@ mobileReloadButton.addEventListener("pointerdown", (event) => {
 });
 // Botão mobile de cura
 function mobileHeal() {
-  if (!gameRunning) return;
+  if (!gameRunning || gamePaused) return;
   useMedkit();
 }
 
@@ -1888,7 +1950,7 @@ function updateMobileAimFromPointer(event) {
 canvas.addEventListener("pointerdown", (event) => {
   const isMobile = window.innerWidth <= 900;
 
-  if (!isMobile || !gameRunning) return;
+  if (!isMobile || !gameRunning || gamePaused) return;
 
   // O lado esquerdo fica reservado para movimento.
   // O lado direito controla a mira.
@@ -1906,7 +1968,7 @@ canvas.addEventListener("pointerdown", (event) => {
 canvas.addEventListener("pointermove", (event) => {
   const isMobile = window.innerWidth <= 900;
 
-  if (!isMobile || !gameRunning) return;
+  if (!isMobile || !gameRunning || gamePaused) return;
   if (!mobileAim.active) return;
   if (event.pointerId !== mobileAim.pointerId) return;
 

@@ -97,6 +97,7 @@
         <p><strong>R:</strong> recarregar</p>
         <p><strong>H:</strong> usar kit médico</p>
         <p><strong>1/2/3:</strong> trocar arma</p>
+        <p><strong>ESC:</strong> pausar</p>
       </div>
     </div>
   </section>
@@ -114,6 +115,7 @@
       <div>🛡️ Escudo: <span id="shieldText">0</span></div>
       <div>⚙️ Modo: <span id="difficultyText">Normal</span></div>
       <div>🌀 Zona: <span id="zoneText">100%</span></div>
+      <button id="pauseButton" class="hud-button">⏸️ Pausar</button>
     </div>
 
     <!-- Canvas onde o jogo será desenhado -->
@@ -158,7 +160,25 @@
     </button>
   </div>
 </section>
+<!-- Tela de pausa -->
+<section id="pauseScreen" class="screen">
+  <div class="menu-card">
+    <h1>Jogo pausado</h1>
+    <p>A partida está pausada. Escolha uma opção para continuar.</p>
 
+    <button id="resumeButton" class="primary-button">
+      Continuar
+    </button>
+
+    <button id="restartPauseButton" class="secondary-button">
+      Reiniciar partida
+    </button>
+
+    <button id="backToMenuButton" class="danger-button">
+      Voltar ao menu
+    </button>
+  </div>
+</section>
   <!-- JavaScript principal -->
   <script src="js/game.js" defer></script>
 </body>
