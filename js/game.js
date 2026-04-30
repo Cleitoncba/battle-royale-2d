@@ -62,6 +62,8 @@ const startButton = document.getElementById("startButton");
 const restartButton = document.getElementById("restartButton");
 
 const pauseButton = document.getElementById("pauseButton");
+const soundButton = document.getElementById("soundButton");
+const menuSoundButton = document.getElementById("menuSoundButton");
 const resumeButton = document.getElementById("resumeButton");
 const restartPauseButton = document.getElementById("restartPauseButton");
 const backToMenuButton = document.getElementById("backToMenuButton");
@@ -166,6 +168,91 @@ let bullets = [];
 let obstacles = [];
 let loots = [];
 let decorations = [];
+
+// ===============================
+// SISTEMA DE ÁUDIO SIMPLES
+// ===============================
+
+let audioContext = null;
+let soundEnabled = true;
+
+// Cria ou reutiliza o contexto de áudio.
+// Navegadores exigem que o áudio comece após uma interação do usuário.
+function getAudioContext() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  return audioContext;
+}
+
+// Toca um som simples usando frequência.
+// type pode ser: "sine", "square", "triangle" ou "sawtooth".
+function playTone(frequency, duration, type = "sine", volume = 0.08) {
+  if (!soundEnabled) return;
+
+  const audio = getAudioContext();
+
+  const oscillator = audio.createOscillator();
+  const gainNode = audio.createGain();
+
+  oscillator.type = type;
+  oscillator.frequency.value = frequency;
+
+  gainNode.gain.setValueAtTime(volume, audio.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audio.destination);
+
+  oscillator.start();
+  oscillator.stop(audio.currentTime + duration);
+}
+
+// Sons do jogo
+function playShootSound() {
+  playTone(520, 0.06, "square", 0.05);
+}
+
+function playHitSound() {
+  playTone(180, 0.12, "sawtooth", 0.06);
+}
+
+function playLootSound() {
+  playTone(760, 0.08, "sine", 0.07);
+
+  setTimeout(() => {
+    playTone(980, 0.08, "sine", 0.06);
+  }, 70);
+}
+
+function playHealSound() {
+  playTone(420, 0.1, "sine", 0.06);
+
+  setTimeout(() => {
+    playTone(620, 0.12, "sine", 0.06);
+  }, 90);
+}
+
+function playVictorySound() {
+  playTone(520, 0.12, "sine", 0.07);
+
+  setTimeout(() => {
+    playTone(660, 0.12, "sine", 0.07);
+  }, 120);
+
+  setTimeout(() => {
+    playTone(880, 0.18, "sine", 0.07);
+  }, 240);
+}
+
+function playDefeatSound() {
+  playTone(260, 0.16, "sawtooth", 0.06);
+
+  setTimeout(() => {
+    playTone(180, 0.22, "sawtooth", 0.06);
+  }, 150);
+}
 
 // Dados da partida
 let kills = 0;
@@ -838,6 +925,8 @@ function backToMenu() {
 }
 // Inicia uma nova partida
 function startGame() {
+  getAudioContext();
+
   startScreen.classList.remove("active");
   endScreen.classList.remove("active");
   pauseScreen.classList.remove("active");
@@ -894,9 +983,13 @@ function endGame(victory) {
   totalCoinsText.textContent = newTotalCoins;
 
   if (victory) {
+    playVictorySound();
+
     endTitle.textContent = "Vitória!";
     endMessage.textContent = `Você venceu a partida com ${kills} eliminações. Bônus de vitória aplicado.`;
   } else {
+    playDefeatSound();
+
     endTitle.textContent = "Derrota!";
     endMessage.textContent = `Você foi eliminado. Kills: ${kills}.`;
   }
@@ -971,6 +1064,8 @@ function useMedkit() {
     player.health = Math.min(PLAYER_MAX_HEALTH, player.health + HEAL_AMOUNT);
     player.medkits -= 1;
     player.healing = false;
+
+    playHealSound();
   }, HEAL_TIME);
 }
 // Aplica dano no jogador.
@@ -987,6 +1082,9 @@ function applyDamageToPlayer(amount) {
   if (amount > 0) {
     player.health -= amount;
   }
+
+  playHitSound();
+
 }
 // Retorna a arma atual do jogador.
 function getCurrentWeapon() {
@@ -1040,6 +1138,9 @@ function shootBullet(owner, targetX, targetY) {
 
     player.lastShot = now;
     player.ammoByWeapon[player.currentWeapon]--;
+    
+    playShootSound();
+
   } else {
     if (now - owner.lastShot < owner.fireRate) return;
     owner.lastShot = now;
@@ -1222,6 +1323,9 @@ if (loot.type === "shotgun") {
   player.ammoByWeapon.shotgun = WEAPONS.shotgun.maxAmmo;
   switchWeapon("shotgun");
 }
+
+playLootSound();
+
 }
 
 // Verifica se o jogador encostou em algum loot.
@@ -1913,6 +2017,30 @@ pauseButton.addEventListener("click", pauseGame);
 resumeButton.addEventListener("click", resumeGame);
 restartPauseButton.addEventListener("click", startGame);
 backToMenuButton.addEventListener("click", backToMenu);
+function updateSoundButtons() {
+  if (soundButton) {
+    soundButton.textContent = soundEnabled ? "🔊 Som" : "🔇 Som";
+  }
+
+  if (menuSoundButton) {
+    menuSoundButton.textContent = soundEnabled ? "🔊 Som ligado" : "🔇 Som desligado";
+  }
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  updateSoundButtons();
+}
+
+if (soundButton) {
+  soundButton.addEventListener("click", toggleSound);
+}
+
+if (menuSoundButton) {
+  menuSoundButton.addEventListener("click", toggleSound);
+}
+
+updateSoundButtons();
 // ===============================
 // JOYSTICK MOBILE
 // ===============================

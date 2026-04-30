@@ -538,4 +538,22 @@ body {
     border-radius: 12px;
   }
 }
+/* Botão de som no menu inicial */
+.sound-menu-button {
+  width: 100%;
+  padding: 10px 14px;
+  margin: 10px 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.88);
+  color: #e5e7eb;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.sound-menu-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
 }
