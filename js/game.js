@@ -6,6 +6,52 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+let miniMapCanvas = document.getElementById("miniMapCanvas");
+let miniMapCtx = null;
+
+function setupMiniMap() {
+  // Se o canvas do mini mapa não existir no HTML, cria automaticamente.
+  if (!miniMapCanvas) {
+    miniMapCanvas = document.createElement("canvas");
+    miniMapCanvas.id = "miniMapCanvas";
+    document.body.appendChild(miniMapCanvas);
+  }
+
+  miniMapCtx = miniMapCanvas.getContext("2d");
+
+  // Força o estilo visual do mini mapa pelo JavaScript.
+  miniMapCanvas.style.position = "fixed";
+  miniMapCanvas.style.top = "86px";
+  miniMapCanvas.style.right = "18px";
+  miniMapCanvas.style.zIndex = "99999";
+  hideMiniMap();
+  miniMapCanvas.style.visibility = "visible";
+  miniMapCanvas.style.opacity = "1";
+  miniMapCanvas.style.width = "190px";
+  miniMapCanvas.style.height = "130px";
+  miniMapCanvas.style.background = "rgba(15, 23, 42, 0.96)";
+  miniMapCanvas.style.border = "3px solid rgba(56, 189, 248, 0.95)";
+  miniMapCanvas.style.borderRadius = "16px";
+  miniMapCanvas.style.boxShadow = "0 14px 35px rgba(0,0,0,0.55)";
+  miniMapCanvas.style.pointerEvents = "none";
+}
+
+function showMiniMap() {
+  if (!miniMapCanvas) return;
+
+  miniMapCanvas.style.setProperty("display", "block", "important");
+  miniMapCanvas.style.setProperty("visibility", "visible", "important");
+  miniMapCanvas.style.setProperty("opacity", "1", "important");
+}
+
+function hideMiniMap() {
+  if (!miniMapCanvas) return;
+
+  miniMapCanvas.style.setProperty("display", "none", "important");
+  miniMapCanvas.style.setProperty("visibility", "hidden", "important");
+  miniMapCanvas.style.setProperty("opacity", "0", "important");
+}
+
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 const endScreen = document.getElementById("endScreen");
@@ -273,10 +319,32 @@ const SKINS = {
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+
+  if (!miniMapCanvas) return;
+
+  if (window.innerWidth <= 900) {
+    miniMapCanvas.width = 118;
+    miniMapCanvas.height = 78;
+
+    miniMapCanvas.style.width = "118px";
+    miniMapCanvas.style.height = "78px";
+    miniMapCanvas.style.top = "84px";
+    miniMapCanvas.style.right = "8px";
+  } else {
+    miniMapCanvas.width = 190;
+    miniMapCanvas.height = 130;
+
+    miniMapCanvas.style.width = "190px";
+    miniMapCanvas.style.height = "130px";
+    miniMapCanvas.style.top = "86px";
+    miniMapCanvas.style.right = "18px";
+  }
 }
+setupMiniMap();
 
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+
 // Retorna o ID da dificuldade salva.
 function getSelectedDifficultyId() {
   return localStorage.getItem(DIFFICULTY_STORAGE_KEY) || DEFAULT_DIFFICULTY;
@@ -730,6 +798,7 @@ function pauseGame() {
 
   gamePaused = true;
   pauseScreen.classList.add("active");
+  hideMiniMap();
 
   if (animationId) {
     cancelAnimationFrame(animationId);
@@ -742,6 +811,8 @@ function resumeGame() {
 
   gamePaused = false;
   pauseScreen.classList.remove("active");
+  showMiniMap();
+
   gameLoop();
 }
 
@@ -753,6 +824,8 @@ function backToMenu() {
   if (animationId) {
     cancelAnimationFrame(animationId);
   }
+  
+  hideMiniMap();
 
   pauseScreen.classList.remove("active");
   endScreen.classList.remove("active");
@@ -761,12 +834,15 @@ function backToMenu() {
   updateMenuCoins();
   updateShopUI();
   updateDifficultyUI();
+  hideMiniMap();
 }
 // Inicia uma nova partida
 function startGame() {
   startScreen.classList.remove("active");
   endScreen.classList.remove("active");
   pauseScreen.classList.remove("active");
+
+  showMiniMap();
 
   gameRunning = true;
   gamePaused = false;
@@ -807,7 +883,11 @@ function endGame(victory) {
   updateShopUI();
   
   pauseScreen.classList.remove("active");
+  hideMiniMap();
+
   endScreen.classList.add("active");
+
+  hideMiniMap();
 
   resultKillsText.textContent = kills;
   matchCoinsText.textContent = matchCoins;
@@ -1659,7 +1739,72 @@ function drawBullets() {
     ctx.fill();
   });
 }
+// Desenha o mini mapa no canto da tela.
+function drawMiniMap() {
+  if (!miniMapCanvas || !miniMapCtx || !player || !safeZone) return;
 
+  const mapWidth = miniMapCanvas.width;
+  const mapHeight = miniMapCanvas.height;
+
+  const scaleX = mapWidth / WORLD_WIDTH;
+  const scaleY = mapHeight / WORLD_HEIGHT;
+  const scale = Math.min(scaleX, scaleY);
+
+  miniMapCtx.clearRect(0, 0, mapWidth, mapHeight);
+
+  // Fundo
+  miniMapCtx.fillStyle = "rgba(15, 23, 42, 0.96)";
+  miniMapCtx.fillRect(0, 0, mapWidth, mapHeight);
+
+  // Texto para confirmar que está desenhando
+  miniMapCtx.fillStyle = "#e5e7eb";
+  miniMapCtx.font = "bold 10px Arial";
+  miniMapCtx.textAlign = "left";
+  miniMapCtx.fillText("MAPA", 8, 14);
+
+  // Borda
+  miniMapCtx.strokeStyle = "rgba(255,255,255,0.35)";
+  miniMapCtx.lineWidth = 2;
+  miniMapCtx.strokeRect(1, 1, mapWidth - 2, mapHeight - 2);
+
+  // Zona segura
+  miniMapCtx.strokeStyle = "#38bdf8";
+  miniMapCtx.lineWidth = 2;
+  miniMapCtx.beginPath();
+  miniMapCtx.arc(
+    safeZone.x * scaleX,
+    safeZone.y * scaleY,
+    safeZone.radius * scale,
+    0,
+    Math.PI * 2
+  );
+  miniMapCtx.stroke();
+
+  // Bots
+  bots.forEach((bot) => {
+    miniMapCtx.fillStyle = "#ef4444";
+    miniMapCtx.beginPath();
+    miniMapCtx.arc(bot.x * scaleX, bot.y * scaleY, 2.5, 0, Math.PI * 2);
+    miniMapCtx.fill();
+  });
+
+  // Jogador
+  miniMapCtx.fillStyle = player.color || "#38bdf8";
+  miniMapCtx.beginPath();
+  miniMapCtx.arc(player.x * scaleX, player.y * scaleY, 4, 0, Math.PI * 2);
+  miniMapCtx.fill();
+
+  // Direção da mira
+  miniMapCtx.strokeStyle = "#ffffff";
+  miniMapCtx.lineWidth = 1.5;
+  miniMapCtx.beginPath();
+  miniMapCtx.moveTo(player.x * scaleX, player.y * scaleY);
+  miniMapCtx.lineTo(
+    player.x * scaleX + Math.cos(player.aimAngle) * 10,
+    player.y * scaleY + Math.sin(player.aimAngle) * 10
+  );
+  miniMapCtx.stroke();
+}
 // Desenha todos os elementos
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1674,6 +1819,8 @@ function draw() {
   drawBullets();
   drawObstacles();
   drawSafeZone();
+
+  drawMiniMap();
 }
 
 // Loop principal do jogo
@@ -2010,6 +2157,8 @@ difficultyButtons.forEach((button) => {
 updateMenuCoins();
 updateShopUI();
 updateDifficultyUI();
+hideMiniMap();
+
 // Registra service worker para PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

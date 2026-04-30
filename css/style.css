@@ -505,4 +505,37 @@ body {
   filter: brightness(1.08);
   transform: translateY(-2px);
 }
+/* Mini mapa no canto superior direito */
+/* Mini mapa fixo */
+#miniMapCanvas {
+  position: fixed !important;
+  top: 76px !important;
+  right: 18px !important;
+  z-index: 9999 !important;
+
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  width: 190px !important;
+  height: 130px !important;
+
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 3px solid rgba(56, 189, 248, 0.85);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.55);
+
+  pointer-events: none;
+}
+
+/* Celular */
+@media (max-width: 900px) {
+  #miniMapCanvas {
+    top: 84px !important;
+    right: 8px !important;
+    width: 118px !important;
+    height: 78px !important;
+    border-radius: 12px;
+  }
+}
 }
