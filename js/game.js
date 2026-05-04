@@ -123,6 +123,39 @@ const keys = {
   s: false,
   d: false,
 };
+// =============================
+// ESTATÍSTICAS DA PARTIDA ATUAL
+// =============================
+
+// Tempo em que a partida começou.
+let matchStartTime = 0;
+
+// Tempo sobrevivido em segundos.
+let matchSurvivalTime = 0;
+
+// Quantidade de bots eliminados pelo jogador.
+let matchKills = 0;
+
+// Dano total causado pelo jogador.
+let matchDamage = 0;
+
+// Quantidade de loots coletados.
+let matchLoots = 0;
+
+// Coins ganhas somente na partida atual.
+let matchCoinsEarned = 0;
+
+// Controle da notificação visual de conquista.
+let achievementToastTimeout = null;
+
+// Fila de conquistas para evitar uma notificação atropelar a outra.
+let achievementToastQueue = [];
+
+// Indica se uma notificação está sendo exibida agora.
+let achievementToastShowing = false;
+
+// Evita abrir a tela de Game Over mais de uma vez.
+let gameOverAlreadyShown = false;
 
 // Estado do joystick mobile.
 // x e y variam de -1 até 1.
@@ -479,6 +512,79 @@ function applyDifficultySettings() {
 
   BOT_BULLET_DAMAGE = selectedDifficulty.botDamage;
 }
+// =============================
+// SISTEMA DE CONQUISTAS
+// =============================
+
+const ACHIEVEMENTS_STATS_KEY = "battleRoyale2dAchievementStats";
+const ACHIEVEMENTS_UNLOCKED_KEY = "battleRoyale2dAchievementsUnlocked";
+
+const ACHIEVEMENTS = [
+  {
+    id: "first_kill",
+    title: "Primeiro abate",
+    description: "Elimine seu primeiro bot.",
+    stat: "totalKills",
+    target: 1,
+    reward: 20,
+  },
+  {
+    id: "hunter_10",
+    title: "Caçador iniciante",
+    description: "Elimine 10 bots no total.",
+    stat: "totalKills",
+    target: 10,
+    reward: 40,
+  },
+  {
+    id: "hunter_50",
+    title: "Caçador veterano",
+    description: "Elimine 50 bots no total.",
+    stat: "totalKills",
+    target: 50,
+    reward: 100,
+  },
+  {
+    id: "survivor_5",
+    title: "Sobrevivente",
+    description: "Jogue 5 partidas.",
+    stat: "totalMatches",
+    target: 5,
+    reward: 30,
+  },
+  {
+    id: "champion_1",
+    title: "Primeiro campeão",
+    description: "Vença sua primeira partida.",
+    stat: "totalWins",
+    target: 1,
+    reward: 50,
+  },
+  {
+    id: "collector_25",
+    title: "Coletor",
+    description: "Colete 25 loots no total.",
+    stat: "totalLoots",
+    target: 25,
+    reward: 35,
+  },
+  {
+    id: "damage_5000",
+    title: "Mão pesada",
+    description: "Cause 5.000 de dano no total.",
+    stat: "totalDamage",
+    target: 5000,
+    reward: 80,
+  },
+  {
+    id: "rich_500",
+    title: "Guerreiro rico",
+    description: "Acumule 500 coins no total.",
+    stat: "totalCoins",
+    target: 500,
+    reward: 50,
+  },
+];
 // Carrega o ranking local.
 function getLocalRanking() {
   const savedRanking = localStorage.getItem(RANKING_STORAGE_KEY);
@@ -709,6 +815,140 @@ function calculateMatchCoins(victory) {
   }
 
   return Math.max(0, coins);
+}
+// Coloca uma conquista na fila de notificações.
+function queueAchievementToast(achievement) {
+  achievementToastQueue.push(achievement);
+
+  if (!achievementToastShowing) {
+    showNextAchievementToast();
+  }
+}
+
+// Mostra a próxima notificação da fila.
+function showNextAchievementToast() {
+  if (achievementToastQueue.length === 0) {
+    achievementToastShowing = false;
+    return;
+  }
+
+  achievementToastShowing = true;
+
+  const achievement = achievementToastQueue.shift();
+
+  const toast = document.getElementById("achievementToast");
+  const toastTitle = document.getElementById("achievementToastTitle");
+  const toastName = document.getElementById("achievementToastName");
+  const toastReward = document.getElementById("achievementToastReward");
+
+  if (!toast) {
+    achievementToastShowing = false;
+    return;
+  }
+
+  if (toastTitle) {
+    toastTitle.textContent = "Conquista desbloqueada!";
+  }
+
+  if (toastName) {
+    toastName.textContent = achievement.title;
+  }
+
+  if (toastReward) {
+    toastReward.textContent = `+${achievement.reward} coins`;
+  }
+
+  toast.classList.remove("hidden");
+
+  // Pequeno atraso para o navegador aplicar o estado inicial antes da animação.
+  setTimeout(() => {
+    toast.classList.add("show");
+  }, 30);
+
+  if (achievementToastTimeout) {
+    clearTimeout(achievementToastTimeout);
+  }
+
+  achievementToastTimeout = setTimeout(() => {
+    toast.classList.remove("show");
+
+    setTimeout(() => {
+      toast.classList.add("hidden");
+      achievementToastShowing = false;
+      showNextAchievementToast();
+    }, 380);
+  }, 3200);
+}
+// Converte segundos em formato MM:SS.
+// Exemplo: 75 segundos vira 01:15.
+function formatMatchTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  const formattedMinutes = String(minutes).padStart(2, "0");
+  const formattedSeconds = String(seconds).padStart(2, "0");
+
+  return `${formattedMinutes}:${formattedSeconds}`;
+}
+function showGameOverScreen(isVictory = false) {
+  // Evita mostrar a tela várias vezes.
+  if (gameOverAlreadyShown) return;
+
+  gameOverAlreadyShown = true;
+
+  // Calcula quanto tempo o jogador sobreviveu.
+  matchSurvivalTime = Math.floor((Date.now() - matchStartTime) / 1000);
+
+  const screen = document.getElementById("gameOverScreen");
+  const title = document.getElementById("gameOverTitle");
+  const subtitle = document.getElementById("gameOverSubtitle");
+
+  const summaryTime = document.getElementById("summaryTime");
+  const summaryKills = document.getElementById("summaryKills");
+  const summaryDamage = document.getElementById("summaryDamage");
+  const summaryLoots = document.getElementById("summaryLoots");
+  const summaryCoins = document.getElementById("summaryCoins");
+
+  if (!screen) return;
+
+  if (title) {
+    title.textContent = isVictory ? "Vitória!" : "Fim de Jogo";
+  }
+
+  if (subtitle) {
+    subtitle.textContent = isVictory
+      ? "Você foi o último sobrevivente do campo de batalha."
+      : "Você foi eliminado, mas sua evolução continua.";
+  }
+
+  if (summaryTime) {
+    summaryTime.textContent = formatMatchTime(matchSurvivalTime);
+  }
+
+  if (summaryKills) {
+    summaryKills.textContent = matchKills;
+  }
+
+  if (summaryDamage) {
+    summaryDamage.textContent = Math.floor(matchDamage);
+  }
+
+  if (summaryLoots) {
+    summaryLoots.textContent = matchLoots;
+  }
+
+  if (summaryCoins) {
+    summaryCoins.textContent = `+${matchCoinsEarned}`;
+  }
+
+  screen.classList.remove("hidden");
+}
+function hideGameOverScreen() {
+  const screen = document.getElementById("gameOverScreen");
+
+  if (!screen) return;
+
+  screen.classList.add("hidden");
 }
 // Cria número aleatório entre mínimo e máximo
 function randomBetween(min, max) {
@@ -1180,7 +1420,10 @@ function backToMenu() {
 
   pauseScreen.classList.remove("active");
   endScreen.classList.remove("active");
+  hideGameOverScreen();
+
   startScreen.classList.add("active");
+  openMenuTab("play");
 
   updateMenuCoins();
   updateShopUI();
@@ -1190,6 +1433,7 @@ function backToMenu() {
 // Inicia uma nova partida
 function startGame() {
   getAudioContext();
+  resetMatchStats();
 
   startScreen.classList.remove("active");
   endScreen.classList.remove("active");
@@ -1229,9 +1473,18 @@ function endGame(victory) {
   }
 
   const matchCoins = calculateMatchCoins(victory);
+  addAchievementStat("totalMatches", 1);
+
+if (victory) {
+  addAchievementStat("totalWins", 1);
+}
+  registerMatchCoins(matchCoins);
+  
   const newTotalCoins = getTotalCoins() + matchCoins;
 
   saveTotalCoins(newTotalCoins);
+  checkAchievements();
+  renderAchievements();
   addMatchToRanking(victory, matchCoins);
 
   updateMenuCoins();
@@ -1239,9 +1492,7 @@ function endGame(victory) {
   updateRankingUI();
   
   pauseScreen.classList.remove("active");
-  hideMiniMap();
-
-  endScreen.classList.add("active");
+  endScreen.classList.remove("active");
 
   hideMiniMap();
 
@@ -1260,8 +1511,53 @@ function endGame(victory) {
     endTitle.textContent = "Derrota!";
     endMessage.textContent = `Você foi eliminado. Kills: ${kills}.`;
   }
+  showGameOverScreen(victory);
+}
+// Reseta todos os dados estatísticos da partida.
+function resetMatchStats() {
+  matchStartTime = Date.now();
+
+  matchSurvivalTime = 0;
+  matchKills = 0;
+  matchDamage = 0;
+  matchLoots = 0;
+  matchCoinsEarned = 0;
+
+  gameOverAlreadyShown = false;
+
+  hideGameOverScreen();
+}
+// Registra uma eliminação feita pelo jogador.
+function registerPlayerKill() {
+  matchKills++;
+  addAchievementStat("totalKills", 1);
 }
 
+// Registra dano causado pelo jogador.
+function registerPlayerDamage(amount) {
+  matchDamage += amount;
+
+  if (matchDamage < 0) {
+    matchDamage = 0;
+  }
+
+  addAchievementStat("totalDamage", amount);
+}
+
+// Registra loot coletado pelo jogador.
+function registerLootCollected() {
+  matchLoots++;
+  addAchievementStat("totalLoots", 1);
+}
+
+// Registra coins ganhas na partida.
+function registerMatchCoins(amount) {
+  matchCoinsEarned += amount;
+
+  if (matchCoinsEarned < 0) {
+    matchCoinsEarned = 0;
+  }
+}
 // Atualiza posição do mouse no mundo
 function updateMouseWorldPosition() {
   mouse.worldX = mouse.x + camera.x;
@@ -1686,6 +1982,7 @@ function updateBots() {
   // Remove bots mortos
   bots = bots.filter((bot) => {
     if (bot.health <= 0) {
+      registerPlayerKill();
       kills++;
       return false;
     }
@@ -1700,36 +1997,39 @@ function updateBots() {
 }
 // Aplica o efeito do loot coletado.
 function collectLoot(loot) {
+  // Conta qualquer tipo de loot coletado.
+  registerLootCollected();
+
   if (loot.type === "medkit") {
     player.medkits += MEDKIT_LOOT_AMOUNT;
   }
 
   if (loot.type === "ammo") {
-  const weapon = getCurrentWeapon();
+    const weapon = getCurrentWeapon();
 
-  player.ammoByWeapon[player.currentWeapon] = Math.min(
-    weapon.maxAmmo,
-    player.ammoByWeapon[player.currentWeapon] + AMMO_LOOT_AMOUNT
-  );
-}
+    player.ammoByWeapon[player.currentWeapon] = Math.min(
+      weapon.maxAmmo,
+      player.ammoByWeapon[player.currentWeapon] + AMMO_LOOT_AMOUNT
+    );
+  }
 
   if (loot.type === "shield") {
     player.shield = Math.min(MAX_SHIELD, player.shield + SHIELD_LOOT_AMOUNT);
   }
+
   if (loot.type === "rifle") {
-  player.weaponsOwned.rifle = true;
-  player.ammoByWeapon.rifle = WEAPONS.rifle.maxAmmo;
-  switchWeapon("rifle");
-}
+    player.weaponsOwned.rifle = true;
+    player.ammoByWeapon.rifle = WEAPONS.rifle.maxAmmo;
+    switchWeapon("rifle");
+  }
 
-if (loot.type === "shotgun") {
-  player.weaponsOwned.shotgun = true;
-  player.ammoByWeapon.shotgun = WEAPONS.shotgun.maxAmmo;
-  switchWeapon("shotgun");
-}
+  if (loot.type === "shotgun") {
+    player.weaponsOwned.shotgun = true;
+    player.ammoByWeapon.shotgun = WEAPONS.shotgun.maxAmmo;
+    switchWeapon("shotgun");
+  }
 
-playLootSound();
-
+  playLootSound();
 }
 
 // Verifica se o jogador encostou em algum loot.
@@ -1757,6 +2057,7 @@ function updateBullets() {
       bots.forEach((bot) => {
         if (distance(bullet, bot) < bullet.radius + bot.radius) {
           bot.health -= bullet.damage;
+          registerPlayerDamage(bullet.damage);
           bullet.life = 0;
         }
       });
@@ -2418,12 +2719,29 @@ canvas.addEventListener("mouseup", () => {
 });
 
 // Botões do menu
-startButton.addEventListener("click", startGame);
-restartButton.addEventListener("click", startGame);
-pauseButton.addEventListener("click", pauseGame);
-resumeButton.addEventListener("click", resumeGame);
-restartPauseButton.addEventListener("click", startGame);
-backToMenuButton.addEventListener("click", backToMenu);
+if (startButton) {
+  startButton.addEventListener("click", startGame);
+}
+
+if (restartButton) {
+  restartButton.addEventListener("click", startGame);
+}
+
+if (pauseButton) {
+  pauseButton.addEventListener("click", pauseGame);
+}
+
+if (resumeButton) {
+  resumeButton.addEventListener("click", resumeGame);
+}
+
+if (restartPauseButton) {
+  restartPauseButton.addEventListener("click", startGame);
+}
+
+if (backToMenuButton) {
+  backToMenuButton.addEventListener("click", backToMenu);
+}
 function updateSoundButtons() {
   if (soundButton) {
     soundButton.textContent = soundEnabled ? "🔊 Som" : "🔇 Som";
@@ -2698,6 +3016,249 @@ if (clearRankingButton) {
     clearLocalRanking();
   });
 }
+// Retorna estatísticas permanentes das conquistas.
+function getAchievementStats() {
+  const savedStats = localStorage.getItem(ACHIEVEMENTS_STATS_KEY);
+
+  if (!savedStats) {
+    return {
+      totalKills: 0,
+      totalMatches: 0,
+      totalWins: 0,
+      totalLoots: 0,
+      totalDamage: 0,
+      totalCoins: getTotalCoins(),
+    };
+  }
+
+  try {
+    const stats = JSON.parse(savedStats);
+
+    return {
+      totalKills: stats.totalKills || 0,
+      totalMatches: stats.totalMatches || 0,
+      totalWins: stats.totalWins || 0,
+      totalLoots: stats.totalLoots || 0,
+      totalDamage: stats.totalDamage || 0,
+      totalCoins: getTotalCoins(),
+    };
+  } catch {
+    return {
+      totalKills: 0,
+      totalMatches: 0,
+      totalWins: 0,
+      totalLoots: 0,
+      totalDamage: 0,
+      totalCoins: getTotalCoins(),
+    };
+  }
+}
+
+// Salva estatísticas permanentes.
+function saveAchievementStats(stats) {
+  localStorage.setItem(ACHIEVEMENTS_STATS_KEY, JSON.stringify(stats));
+}
+
+// Retorna conquistas já desbloqueadas.
+function getUnlockedAchievements() {
+  const savedUnlocked = localStorage.getItem(ACHIEVEMENTS_UNLOCKED_KEY);
+
+  if (!savedUnlocked) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(savedUnlocked);
+  } catch {
+    return {};
+  }
+}
+
+// Salva conquistas desbloqueadas.
+function saveUnlockedAchievements(unlocked) {
+  localStorage.setItem(ACHIEVEMENTS_UNLOCKED_KEY, JSON.stringify(unlocked));
+}
+
+// Soma valor em uma estatística permanente.
+function addAchievementStat(statName, amount) {
+  const stats = getAchievementStats();
+
+  stats[statName] = (stats[statName] || 0) + amount;
+
+  if (stats[statName] < 0) {
+    stats[statName] = 0;
+  }
+
+  stats.totalCoins = getTotalCoins();
+
+  saveAchievementStats(stats);
+  checkAchievements();
+  renderAchievements();
+}
+
+// Verifica se alguma conquista foi desbloqueada.
+function checkAchievements(showToast = true) {
+  const stats = getAchievementStats();
+  const unlocked = getUnlockedAchievements();
+
+  ACHIEVEMENTS.forEach((achievement) => {
+    if (unlocked[achievement.id]) return;
+
+    const currentValue = stats[achievement.stat] || 0;
+
+    if (currentValue >= achievement.target) {
+  unlocked[achievement.id] = true;
+
+  const currentCoins = getTotalCoins();
+  saveTotalCoins(currentCoins + achievement.reward);
+  updateMenuCoins();
+
+  if (showToast) {
+  queueAchievementToast(achievement);
+}
+
+  console.log(`Conquista desbloqueada: ${achievement.title}`);
+}
+  });
+
+  saveUnlockedAchievements(unlocked);
+}
+
+// Renderiza conquistas na aba do menu.
+function renderAchievements() {
+  const list = document.getElementById("achievementsList");
+
+  if (!list) return;
+
+  const stats = getAchievementStats();
+  const unlocked = getUnlockedAchievements();
+
+  list.innerHTML = "";
+
+  ACHIEVEMENTS.forEach((achievement) => {
+    const currentValue = Math.min(stats[achievement.stat] || 0, achievement.target);
+    const percent = Math.min((currentValue / achievement.target) * 100, 100);
+    const isUnlocked = Boolean(unlocked[achievement.id]);
+
+    const item = document.createElement("div");
+    item.className = `achievement-item ${isUnlocked ? "unlocked" : ""}`;
+
+    item.innerHTML = `
+      <div class="achievement-title">
+        <span>${achievement.title}</span>
+        <span class="achievement-badge">${isUnlocked ? "✅" : "🔒"}</span>
+      </div>
+
+      <div class="achievement-description">
+        ${achievement.description}
+      </div>
+
+      <div class="achievement-progress-text">
+        Progresso: ${currentValue}/${achievement.target}
+      </div>
+
+      <div class="achievement-progress-bar">
+        <div class="achievement-progress-fill" style="width: ${percent}%"></div>
+      </div>
+
+      <div class="achievement-reward">
+        Recompensa: +${achievement.reward} coins
+      </div>
+    `;
+
+    list.appendChild(item);
+  });
+}
+// =============================
+// BOTÕES DA NOVA TELA DE GAME OVER
+// =============================
+
+function setupGameOverButtons() {
+  const newRestartButton = document.getElementById("restartGameBtn");
+  const newBackToMenuButton = document.getElementById("backToMenuBtn");
+
+  if (newRestartButton) {
+    newRestartButton.addEventListener("click", () => {
+      hideGameOverScreen();
+      startGame();
+    });
+  }
+
+  if (newBackToMenuButton) {
+    newBackToMenuButton.addEventListener("click", () => {
+      hideGameOverScreen();
+      backToMenu();
+    });
+  }
+}
+// =============================
+// ETAPA 16 - ABAS DO MENU INICIAL
+// =============================
+
+// Abre uma aba específica do menu inicial.
+// Exemplo: openMenuTab("shop") abre a aba Loja.
+function openMenuTab(tabName) {
+  const menuTabs = document.querySelectorAll(".menu-tab");
+  const tabContents = document.querySelectorAll(".menu-tab-content");
+
+  menuTabs.forEach((tab) => {
+    tab.classList.remove("active");
+  });
+
+  tabContents.forEach((content) => {
+    content.classList.remove("active");
+  });
+
+  const activeButton = document.querySelector(`.menu-tab[data-tab="${tabName}"]`);
+  const activeContent = document.getElementById(`tab-${tabName}`);
+
+  if (activeButton) {
+    activeButton.classList.add("active");
+  }
+
+  if (activeContent) {
+    activeContent.classList.add("active");
+  }
+  if (tabName === "achievements") {
+  checkAchievements(false);
+  renderAchievements();
+}
+}
+
+// Configura os cliques nas abas do menu.
+function setupMenuTabs() {
+  const menuTabsContainer = document.querySelector(".menu-tabs");
+
+  if (!menuTabsContainer) {
+    console.warn("Menu de abas não encontrado. Verifique se existe .menu-tabs no HTML.");
+    return;
+  }
+
+  menuTabsContainer.addEventListener("click", (event) => {
+    const clickedTab = event.target.closest(".menu-tab");
+
+    if (!clickedTab) return;
+
+    const selectedTab = clickedTab.dataset.tab;
+
+    if (!selectedTab) return;
+
+    openMenuTab(selectedTab);
+  });
+
+  // Garante que a aba Jogar comece aberta.
+  openMenuTab("play");
+}
+// Como seu código não tem DOMContentLoaded,
+// usamos window.load para ativar os botões depois que o HTML carregar.
+window.addEventListener("load", () => {
+  setupGameOverButtons();
+  setupMenuTabs();
+  renderAchievements();
+
+  // Verifica conquistas já completas, mas sem mostrar toast ao carregar a página.
+  checkAchievements(false);
+});
 // Atualiza menu e loja quando o jogo abre.
 updateMenuCoins();
 updateShopUI();

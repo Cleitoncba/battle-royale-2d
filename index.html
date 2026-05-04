@@ -20,88 +20,143 @@
 <body>
   <!-- Tela inicial -->
   <section id="startScreen" class="screen active">
-    <div class="menu-card">
-      <h1>Battle Royale 2D</h1>
-      <p>
-        Sobreviva, elimine os bots e fique dentro da zona segura.
-      </p>
-      <div class="coins-preview">
-  💰 Seus coins: <strong id="menuCoinsText">0</strong>
-</div>
-<button id="menuSoundButton" class="sound-menu-button">
-  🔊 Som ligado
-</button>
-<div class="difficulty-box">
-  <h2>Dificuldade</h2>
+    <div class="menu-card main-menu-card">
+  <h1>Battle Royale 2D</h1>
 
-  <div class="difficulty-buttons">
-    <button class="difficulty-button" data-difficulty="easy">
-      Fácil
-    </button>
-
-    <button class="difficulty-button" data-difficulty="normal">
-      Normal
-    </button>
-
-    <button class="difficulty-button" data-difficulty="hard">
-      Difícil
-    </button>
-  </div>
-
-  <p id="difficultyDescription" class="difficulty-description">
-    Normal: experiência equilibrada.
+  <p class="menu-subtitle">
+    Sobreviva, elimine os bots e fique dentro da zona segura.
   </p>
-</div>
-<div class="shop-box">
-  <h2>Loja de Skins</h2>
 
-  <div class="skin-grid">
-    <button class="skin-card" data-skin="blue">
-      <span class="skin-preview skin-blue"></span>
-      <strong>Azul</strong>
-      <small>Grátis</small>
-      <em id="skinStatusBlue">Equipada</em>
-    </button>
-
-    <button class="skin-card" data-skin="green">
-      <span class="skin-preview skin-green"></span>
-      <strong>Verde</strong>
-      <small>100 coins</small>
-      <em id="skinStatusGreen">Comprar</em>
-    </button>
-
-    <button class="skin-card" data-skin="purple">
-      <span class="skin-preview skin-purple"></span>
-      <strong>Roxa</strong>
-      <small>250 coins</small>
-      <em id="skinStatusPurple">Comprar</em>
-    </button>
-
-    <button class="skin-card" data-skin="gold">
-      <span class="skin-preview skin-gold"></span>
-      <strong>Dourada</strong>
-      <small>500 coins</small>
-      <em id="skinStatusGold">Comprar</em>
-    </button>
+  <div class="coins-preview">
+    💰 Seus coins: <strong id="menuCoinsText">0</strong>
   </div>
 
-  <p id="shopMessage" class="shop-message"></p>
-</div>
+  <!-- Abas do menu inicial -->
+  <div class="menu-tabs menu-tabs-five">
+  <button type="button" class="menu-tab active" data-tab="play" onclick="openMenuTab('play')">
+    Jogar
+  </button>
 
-    <div class="ranking-box">
-  <h2>Ranking Local</h2>
+  <button type="button" class="menu-tab" data-tab="shop" onclick="openMenuTab('shop')">
+    Loja
+  </button>
 
-  <div id="rankingList" class="ranking-list">
-    <p class="empty-ranking">Nenhuma partida registrada ainda.</p>
-  </div>
+  <button type="button" class="menu-tab" data-tab="ranking" onclick="openMenuTab('ranking')">
+    Ranking
+  </button>
 
-  <button id="clearRankingButton" class="small-danger-button">
-    Limpar ranking
+  <button type="button" class="menu-tab" data-tab="achievements" onclick="openMenuTab('achievements')">
+    Conquistas
+  </button>
+
+  <button type="button" class="menu-tab" data-tab="config" onclick="openMenuTab('config')">
+    Config
   </button>
 </div>
 
-      <button id="startButton" class="primary-button">
-        Jogar agora
+  <!-- Aba Jogar -->
+  <div id="tab-play" class="menu-tab-content active">
+    <div class="difficulty-box">
+      <h2>Dificuldade</h2>
+
+      <div class="difficulty-buttons">
+        <button class="difficulty-button" data-difficulty="easy">
+          Fácil
+        </button>
+
+        <button class="difficulty-button" data-difficulty="normal">
+          Normal
+        </button>
+
+        <button class="difficulty-button" data-difficulty="hard">
+          Difícil
+        </button>
+      </div>
+
+      <p id="difficultyDescription" class="difficulty-description">
+        Normal: experiência equilibrada.
+      </p>
+    </div>
+
+    <button id="startButton" class="primary-button">
+      Jogar agora
+    </button>
+  </div>
+
+  <!-- Aba Loja -->
+  <div id="tab-shop" class="menu-tab-content">
+    <div class="shop-box">
+      <h2>Loja de Skins</h2>
+
+      <div class="skin-grid">
+        <button class="skin-card" data-skin="blue">
+          <span class="skin-preview skin-blue"></span>
+          <strong>Azul</strong>
+          <small>Grátis</small>
+          <em id="skinStatusBlue">Equipada</em>
+        </button>
+
+        <button class="skin-card" data-skin="green">
+          <span class="skin-preview skin-green"></span>
+          <strong>Verde</strong>
+          <small>100 coins</small>
+          <em id="skinStatusGreen">Comprar</em>
+        </button>
+
+        <button class="skin-card" data-skin="purple">
+          <span class="skin-preview skin-purple"></span>
+          <strong>Roxa</strong>
+          <small>250 coins</small>
+          <em id="skinStatusPurple">Comprar</em>
+        </button>
+
+        <button class="skin-card" data-skin="gold">
+          <span class="skin-preview skin-gold"></span>
+          <strong>Dourada</strong>
+          <small>500 coins</small>
+          <em id="skinStatusGold">Comprar</em>
+        </button>
+      </div>
+
+      <p id="shopMessage" class="shop-message"></p>
+    </div>
+  </div>
+
+  <!-- Aba Ranking -->
+  <div id="tab-ranking" class="menu-tab-content">
+    <div class="ranking-box">
+      <h2>Ranking Local</h2>
+
+      <div id="rankingList" class="ranking-list">
+        <p class="empty-ranking">Nenhuma partida registrada ainda.</p>
+      </div>
+
+      <button id="clearRankingButton" class="small-danger-button">
+        Limpar ranking
+      </button>
+    </div>
+  </div>
+  <!-- Aba Conquistas -->
+<div id="tab-achievements" class="menu-tab-content">
+  <div class="achievements-box">
+    <h2>Conquistas</h2>
+
+    <p class="achievements-subtitle">
+      Desbloqueie objetivos permanentes jogando partidas.
+    </p>
+
+    <div id="achievementsList" class="achievements-list">
+      <!-- As conquistas serão carregadas pelo JavaScript -->
+    </div>
+  </div>
+</div>
+  <!-- Aba Config -->
+  <div id="tab-config" class="menu-tab-content">
+    <div class="config-box">
+      <h2>Configurações</h2>
+
+      <button id="menuSoundButton" class="sound-menu-button">
+        🔊 Som ligado
       </button>
 
       <div class="instructions">
@@ -115,6 +170,8 @@
         <p><strong>ESC:</strong> pausar</p>
       </div>
     </div>
+  </div>
+</div>
   </section>
 
   <!-- Tela do jogo -->
@@ -198,6 +255,63 @@
     </button>
   </div>
 </section>
+<!-- TELA DE GAME OVER / FIM DE PARTIDA -->
+<div id="gameOverScreen" class="game-over-screen hidden">
+  <div class="game-over-card">
+    <h1 id="gameOverTitle">Fim de Jogo</h1>
+
+    <p id="gameOverSubtitle" class="game-over-subtitle">
+      Você lutou até o fim!
+    </p>
+
+    <div class="match-summary">
+      <div class="summary-item">
+        <span class="summary-label">Tempo sobrevivido</span>
+        <strong id="summaryTime">00:00</strong>
+      </div>
+
+      <div class="summary-item">
+        <span class="summary-label">Eliminações</span>
+        <strong id="summaryKills">0</strong>
+      </div>
+
+      <div class="summary-item">
+        <span class="summary-label">Dano causado</span>
+        <strong id="summaryDamage">0</strong>
+      </div>
+
+      <div class="summary-item">
+        <span class="summary-label">Loots coletados</span>
+        <strong id="summaryLoots">0</strong>
+      </div>
+
+      <div class="summary-item coins-summary">
+        <span class="summary-label">Coins ganhas</span>
+        <strong id="summaryCoins">+0</strong>
+      </div>
+    </div>
+
+    <div class="game-over-buttons">
+      <button id="restartGameBtn" class="game-over-btn primary">
+        Jogar novamente
+      </button>
+
+      <button id="backToMenuBtn" class="game-over-btn secondary">
+        Voltar ao menu
+      </button>
+    </div>
+  </div>
+</div>
+<!-- NOTIFICAÇÃO DE CONQUISTA -->
+<div id="achievementToast" class="achievement-toast hidden">
+  <div class="achievement-toast-icon">🏆</div>
+
+  <div class="achievement-toast-content">
+    <strong id="achievementToastTitle">Conquista desbloqueada!</strong>
+    <span id="achievementToastName">Primeiro abate</span>
+    <small id="achievementToastReward">+20 coins</small>
+  </div>
+</div>
   <!-- JavaScript principal -->
   <script src="js/game.js" defer></script>
 </body>
