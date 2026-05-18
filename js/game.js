@@ -3633,7 +3633,7 @@ function drawMapSpecialDetails() {
     ctx.strokeStyle = "rgba(120, 53, 15, 0.28)";
     ctx.lineWidth = 4;
 
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < (mobile ? 8 : 16); i++) {
       const x = ((i * 337) % WORLD_WIDTH) - camera.x;
       const y = ((i * 193) % WORLD_HEIGHT) - camera.y;
 
@@ -3645,7 +3645,7 @@ function drawMapSpecialDetails() {
     // Pequenos pontos de areia
     ctx.fillStyle = "rgba(254, 243, 199, 0.28)";
 
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < (mobile ? 35 : 90); i++) {
       const x = ((i * 157) % WORLD_WIDTH) - camera.x;
       const y = ((i * 89) % WORLD_HEIGHT) - camera.y;
 
@@ -3661,7 +3661,7 @@ function drawMapSpecialDetails() {
   if (map.id === "snow") {
     ctx.fillStyle = "rgba(255, 255, 255, 0.42)";
 
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < (mobile ? 9 : 18); i++) {
       const x = ((i * 281) % WORLD_WIDTH) - camera.x;
       const y = ((i * 173) % WORLD_HEIGHT) - camera.y;
 
@@ -3673,7 +3673,7 @@ function drawMapSpecialDetails() {
     // Pequenos flocos no chão
     ctx.fillStyle = "rgba(15, 23, 42, 0.12)";
 
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < (mobile ? 30 : 70); i++) {
       const x = ((i * 199) % WORLD_WIDTH) - camera.x;
       const y = ((i * 131) % WORLD_HEIGHT) - camera.y;
 
@@ -3689,7 +3689,7 @@ function drawMapSpecialDetails() {
   if (map.id === "swamp") {
     ctx.fillStyle = "rgba(20, 184, 166, 0.22)";
 
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < (mobile ? 7 : 14); i++) {
       const x = ((i * 311) % WORLD_WIDTH) - camera.x;
       const y = ((i * 227) % WORLD_HEIGHT) - camera.y;
 
@@ -3705,7 +3705,7 @@ function drawMapSpecialDetails() {
     // Lama escura
     ctx.fillStyle = "rgba(63, 98, 18, 0.28)";
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < (mobile ? 10 : 20); i++) {
       const x = ((i * 241) % WORLD_WIDTH) - camera.x;
       const y = ((i * 151) % WORLD_HEIGHT) - camera.y;
 
@@ -3791,7 +3791,11 @@ function drawSafeZone() {
 function drawDecorations() {
   const map = currentMap || MAPS[DEFAULT_MAP_ID];
 
-  decorations.forEach((decoration) => {
+  // No mobile, reduzimos um pouco os detalhes decorativos para melhorar desempenho.
+  const decorationStep = isMobileLayout() ? 2 : 1;
+
+  decorations.forEach((decoration, index) => {
+  if (index % decorationStep !== 0) return;
     const screenX = decoration.x - camera.x;
     const screenY = decoration.y - camera.y;
 
@@ -3882,6 +3886,8 @@ function drawDecorations() {
 /// Desenha obstáculos: árvores, pedras e casas.
 function drawObstacles() {
     const map = currentMap || MAPS[DEFAULT_MAP_ID];
+
+    const mobile = isMobileLayout();
     
     obstacles.forEach((obstacle) => {
     const screenX = obstacle.x - camera.x;
@@ -4575,14 +4581,45 @@ function updateMobileAimFromPointer(event) {
 }
 
 // Começa a controlar a mira no lado direito da tela.
+// Verifica se o toque aconteceu em cima da área do joystick.
+// Se for no joystick, não deve controlar a mira.
+function isPointerOverJoystick(event) {
+  if (!joystickArea) return false;
+
+  const rect = joystickArea.getBoundingClientRect();
+
+  return (
+    event.clientX >= rect.left &&
+    event.clientX <= rect.right &&
+    event.clientY >= rect.top &&
+    event.clientY <= rect.bottom
+  );
+}
+
+// Verifica se o toque aconteceu em cima da área do joystick.
+// Se for no joystick, não deve controlar a mira.
+function isPointerOverJoystick(event) {
+  if (!joystickArea) return false;
+
+  const rect = joystickArea.getBoundingClientRect();
+
+  return (
+    event.clientX >= rect.left &&
+    event.clientX <= rect.right &&
+    event.clientY >= rect.top &&
+    event.clientY <= rect.bottom
+  );
+}
+
+// Começa a controlar a mira em praticamente toda a tela.
+// Apenas a área do joystick fica reservada para movimentação.
 canvas.addEventListener("pointerdown", (event) => {
   const isMobile = isMobileLayout();
 
   if (!isMobile || !gameRunning || gamePaused) return;
 
-  // O lado esquerdo fica reservado para movimento.
-  // O lado direito controla a mira.
-  if (event.clientX < getViewportWidth() * 0.42) return;
+  // Se o toque foi no joystick, não mexe na mira.
+  if (isPointerOverJoystick(event)) return;
 
   event.preventDefault();
   event.stopPropagation();
@@ -4595,7 +4632,7 @@ canvas.addEventListener("pointerdown", (event) => {
   updateMobileAimFromPointer(event);
 });
 
-// Move a mira enquanto o dedo arrasta no lado direito.
+// Move a mira enquanto o dedo arrasta fora da área do joystick.
 canvas.addEventListener("pointermove", (event) => {
   const isMobile = isMobileLayout();
 
