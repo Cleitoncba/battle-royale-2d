@@ -1,100 +1,60 @@
-/* Remove margens e deixa o layout ocupando a tela toda */
+/* =========================================================
+   BATTLE ROYALE 2D - STYLE.CSS ORGANIZADO
+   ========================================================= */
+
+/* ============================= */
+/* 1. RESET E BASE */
+/* ============================= */
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Estilo geral da página */
+html,
 body {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+}
+
+body {
   overflow: hidden;
   font-family: Arial, Helvetica, sans-serif;
   background: #111827;
-  color: white;
+  color: #ffffff;
 }
 
-/* Telas de menu, início e fim */
+.hidden {
+  display: none !important;
+}
+
+/* ============================= */
+/* 2. TELAS PRINCIPAIS */
+/* ============================= */
+
 .screen {
   position: fixed;
   inset: 0;
+  z-index: 20;
+
   display: none;
   align-items: flex-start;
   justify-content: center;
+
   padding: 24px 20px;
+
+  overflow-y: auto;
+
   background:
     radial-gradient(circle at top, rgba(34, 197, 94, 0.25), transparent 35%),
     linear-gradient(135deg, #020617, #111827);
-  z-index: 20;
-
-  overflow-y: auto;
 }
 
-/* Mostra apenas a tela ativa */
 .screen.active {
   display: flex;
 }
 
-/* Card central do menu */
-.menu-card {
-  width: 100%;
-  max-width: 440px;
-  padding: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 24px;
-  background: rgba(15, 23, 42, 0.92);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-  text-align: center;
-}
-
-/* Título do menu */
-.menu-card h1 {
-  margin-bottom: 14px;
-  font-size: 34px;
-}
-
-/* Texto do menu */
-.menu-card p {
-  margin-bottom: 14px;
-  color: #cbd5e1;
-  line-height: 1.5;
-}
-
-/* Botão principal */
-.primary-button {
-  width: 100%;
-  padding: 15px 18px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 16px;
-  background: #22c55e;
-  color: #052e16;
-  font-size: 18px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-/* Efeito no botão */
-.primary-button:hover {
-  filter: brightness(1.08);
-  transform: translateY(-2px);
-}
-
-/* Instruções */
-.instructions {
-  margin-top: 24px;
-  text-align: left;
-  font-size: 14px;
-}
-
-.instructions h2 {
-  margin-bottom: 10px;
-  font-size: 18px;
-}
-
-/* Tela principal do jogo */
 .game-screen {
   position: relative;
   width: 100vw;
@@ -102,192 +62,245 @@ body {
   background: #020617;
 }
 
-/* HUD com vida, munição, kills etc */
-.hud {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  z-index: 10;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-  width: calc(100% - 20px);
-  transform: translateX(-50%);
-  pointer-events: none;
+/* ============================= */
+/* 3. MENU PRINCIPAL */
+/* ============================= */
+
+.menu-card {
+  width: 100%;
+  max-width: 680px;
+  padding: 28px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+
+  text-align: center;
 }
 
-/* Cada item do HUD */
-.hud div {
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 14px;
-  backdrop-filter: blur(10px);
+.main-menu-card {
+  max-width: 680px;
 }
 
-/* Canvas do jogo */
-#gameCanvas {
-  display: block;
-  width: 100vw;
-  height: 100vh;
-  background: #14532d;
-  touch-action: none;
-  cursor: crosshair;
+.menu-card h1 {
+  margin-bottom: 14px;
+  font-size: 34px;
 }
 
-/* Controles mobile */
-.mobile-controls {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 18px;
-  z-index: 12;
-  display: none;
-  justify-content: space-between;
-  align-items: flex-end;
-  padding: 0 20px;
-  pointer-events: none;
-  touch-action: none;
+.menu-card p {
+  margin-bottom: 14px;
+  color: #cbd5e1;
+  line-height: 1.5;
 }
 
-/* Botões mobile */
-.mobile-controls button {
-  pointer-events: auto;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  border: none;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.85);
-  color: white;
-  font-weight: 800;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+.menu-subtitle {
+  margin-bottom: 12px;
 }
 
-/* Área do joystick mobile */
-.joystick-area {
-  width: 140px;
-  height: 140px;
-  position: relative;
-  pointer-events: auto;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* Base circular do joystick */
-.joystick-base {
-  position: absolute;
-  left: 10px;
-  bottom: 0;
-  width: 118px;
-  height: 118px;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.72);
-  border: 2px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-}
-
-/* Bolinha interna do joystick */
-.joystick-stick {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: rgba(56, 189, 248, 0.95);
-  border: 2px solid rgba(255, 255, 255, 0.55);
-  transform: translate(-50%, -50%);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
-}
-
-/* Botões de ação */
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  pointer-events: auto;
-  touch-action: none;
-}
-
-.action-buttons button {
-  width: 112px;
-  height: 48px;
-  font-size: 13px;
-}
-/* Botões pequenos de troca de arma no mobile */
-.weapon-buttons {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  width: 180px;
-  transform: translateX(-68px);
-}
-
-.weapon-buttons button {
-  width: 58px;
-  height: 34px;
-  padding: 0;
-  font-size: 10px;
-  border-radius: 10px;
-}
-
-/* Em telas menores, mostra os controles mobile */
-@media (max-width: 900px) {
-  .mobile-controls {
-    display: flex;
-  }
-
-  .hud {
-    top: 8px;
-    gap: 6px;
-  }
-
-  .hud div {
-    padding: 6px 9px;
-    font-size: 12px;
-  }
-
-  .menu-card h1 {
-    font-size: 28px;
-  }
-}
-  /* Caixa de resultado da partida */
-.result-box {
-  margin: 18px 0;
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(2, 6, 23, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  text-align: left;
-}
-
-.result-box p {
-  margin: 8px 0;
-  color: #e5e7eb;
-}
-
-/* Coins exibidas no menu inicial */
 .coins-preview {
   margin: 14px 0 8px;
   padding: 10px 12px;
+
   border-radius: 999px;
+
   background: rgba(250, 204, 21, 0.12);
   border: 1px solid rgba(250, 204, 21, 0.32);
+
   color: #fef3c7;
   font-weight: 700;
 }
-/* Caixa da loja no menu inicial */
+
+/* ============================= */
+/* 4. BOTÕES GERAIS */
+/* ============================= */
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  width: 100%;
+  padding: 14px 18px;
+  margin-top: 10px;
+
+  border: none;
+  border-radius: 16px;
+
+  font-weight: 800;
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.primary-button {
+  padding: 15px 18px;
+  background: #22c55e;
+  color: #052e16;
+  font-size: 18px;
+}
+
+.secondary-button {
+  background: #334155;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.danger-button {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.primary-button:hover,
+.secondary-button:hover,
+.danger-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
+/* ============================= */
+/* 5. ABAS DO MENU */
+/* ============================= */
+
+.menu-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+
+  margin: 18px 0;
+}
+
+.menu-tabs-five {
+  grid-template-columns: repeat(5, 1fr) !important;
+}
+
+.menu-tab {
+  padding: 12px 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.menu-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(34, 197, 94, 0.65);
+}
+
+.menu-tab.active {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: rgba(34, 197, 94, 0.85);
+  color: #bbf7d0;
+}
+
+.menu-tab-content {
+  display: none !important;
+}
+
+.menu-tab-content.active {
+  display: block !important;
+}
+
+/* ============================= */
+/* 6. DIFICULDADE */
+/* ============================= */
+
+.difficulty-box {
+  margin-top: 14px;
+  padding: 14px;
+
+  border-radius: 18px;
+
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  text-align: center;
+}
+
+.menu-tab-content .difficulty-box {
+  margin-top: 0;
+}
+
+.difficulty-box h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.difficulty-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.difficulty-button {
+  padding: 10px 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+
+  background: rgba(15, 23, 42, 0.88);
+  color: #ffffff;
+
+  font-weight: 800;
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.difficulty-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 197, 94, 0.65);
+}
+
+.difficulty-button.active {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.85);
+  color: #bbf7d0;
+}
+
+.difficulty-description {
+  min-height: 20px;
+  margin-top: 10px;
+
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+/* ============================= */
+/* 7. LOJA DE SKINS */
+/* ============================= */
+
 .shop-box {
   margin-top: 18px;
   padding: 14px;
+
   border-radius: 18px;
+
   background: rgba(2, 6, 23, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.12);
+
   text-align: left;
+}
+
+.menu-tab-content .shop-box {
+  margin-top: 0;
 }
 
 .shop-box h2 {
@@ -296,7 +309,6 @@ body {
   text-align: center;
 }
 
-/* Grade das skins */
 .skin-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -308,13 +320,21 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+
   padding: 10px 8px;
+
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
+
   background: rgba(15, 23, 42, 0.88);
-  color: white;
+  color: #ffffff;
+
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .skin-card:hover {
@@ -335,20 +355,24 @@ body {
 .skin-card em {
   margin-top: 4px;
   padding: 4px 7px;
+
   border-radius: 999px;
+
   background: rgba(34, 197, 94, 0.14);
   color: #bbf7d0;
+
   font-size: 11px;
   font-style: normal;
   font-weight: 700;
 }
 
-/* Bolinha de prévia da skin */
 .skin-preview {
   width: 34px;
   height: 34px;
+
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.72);
+
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
 }
 
@@ -368,205 +392,33 @@ body {
   background: #facc15;
 }
 
-/* Mensagem da loja */
 .shop-message {
   min-height: 20px;
   margin-top: 10px;
+
   color: #fef3c7;
   font-size: 13px;
   text-align: center;
 }
 
-/* Em celulares menores, reduz a loja */
-@media (max-height: 760px) {
-  .shop-box {
-    margin-top: 12px;
-    padding: 10px;
-  }
+/* ============================= */
+/* 8. RANKING */
+/* ============================= */
 
-  .skin-card {
-    padding: 8px 6px;
-  }
-
-  .skin-preview {
-    width: 28px;
-    height: 28px;
-  }
-}
-/* Caixa de dificuldade */
-.difficulty-box {
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(2, 6, 23, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  text-align: center;
-}
-
-.difficulty-box h2 {
-  margin-bottom: 12px;
-  font-size: 18px;
-}
-
-.difficulty-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.difficulty-button {
-  padding: 10px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.88);
-  color: white;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
-
-.difficulty-button:hover {
-  transform: translateY(-2px);
-  border-color: rgba(34, 197, 94, 0.65);
-}
-
-.difficulty-button.active {
-  background: rgba(34, 197, 94, 0.25);
-  border-color: rgba(34, 197, 94, 0.85);
-  color: #bbf7d0;
-}
-
-.difficulty-description {
-  min-height: 20px;
-  margin-top: 10px;
-  color: #cbd5e1;
-  font-size: 13px;
-}
-
-/* Em telas baixas, reduz a caixa de dificuldade */
-@media (max-height: 760px) {
-  .difficulty-box {
-    margin-top: 10px;
-    padding: 10px;
-  }
-
-  .difficulty-button {
-    padding: 8px 6px;
-    font-size: 12px;
-  }
-}
-/* Botão dentro do HUD */
-.hud-button {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(250, 204, 21, 0.18);
-  border: 1px solid rgba(250, 204, 21, 0.35);
-  color: #fef3c7;
-  font-weight: 800;
-  cursor: pointer;
-  pointer-events: auto;
-  backdrop-filter: blur(10px);
-}
-
-/* Botão secundário do menu */
-.secondary-button {
-  width: 100%;
-  padding: 14px 18px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 16px;
-  background: #334155;
-  color: white;
-  font-size: 16px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.secondary-button:hover {
-  filter: brightness(1.08);
-  transform: translateY(-2px);
-}
-
-/* Botão perigoso, usado para sair da partida */
-.danger-button {
-  width: 100%;
-  padding: 14px 18px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 16px;
-  background: #ef4444;
-  color: white;
-  font-size: 16px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.danger-button:hover {
-  filter: brightness(1.08);
-  transform: translateY(-2px);
-}
-/* Mini mapa no canto superior direito */
-/* Mini mapa fixo */
-#miniMapCanvas {
-  position: fixed !important;
-  top: 76px !important;
-  right: 18px !important;
-  z-index: 9999 !important;
-
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-
-  width: 190px !important;
-  height: 130px !important;
-
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 3px solid rgba(56, 189, 248, 0.85);
-  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.55);
-
-  pointer-events: none;
-}
-
-/* Celular */
-@media (max-width: 900px) {
-  #miniMapCanvas {
-    top: 86px !important;
-    right: 8px !important;
-    width: 96px !important;
-    height: 64px !important;
-    border-radius: 12px;
-  }
-}
-/* Botão de som no menu inicial */
-.sound-menu-button {
-  width: 100%;
-  padding: 10px 14px;
-  margin: 10px 0 4px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.88);
-  color: #e5e7eb;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.sound-menu-button:hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-}
-/* Ranking local */
 .ranking-box {
   margin-top: 18px;
   padding: 14px;
+
   border-radius: 18px;
+
   background: rgba(2, 6, 23, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.12);
+
   text-align: left;
+}
+
+.menu-tab-content .ranking-box {
+  margin-top: 0;
 }
 
 .ranking-box h2 {
@@ -579,6 +431,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
   max-height: 170px;
   overflow-y: auto;
   padding-right: 4px;
@@ -588,8 +441,11 @@ body {
   display: grid;
   grid-template-columns: 28px 1fr;
   gap: 8px;
+
   padding: 9px 10px;
+
   border-radius: 14px;
+
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -597,13 +453,17 @@ body {
 .ranking-position {
   width: 28px;
   height: 28px;
+
   display: grid;
   place-items: center;
+
   border-radius: 999px;
+
   background: rgba(250, 204, 21, 0.16);
   color: #fef3c7;
-  font-weight: 900;
+
   font-size: 13px;
+  font-weight: 900;
 }
 
 .ranking-info strong {
@@ -614,7 +474,9 @@ body {
 
 .ranking-info small {
   display: block;
+
   margin-top: 3px;
+
   color: #cbd5e1;
   font-size: 11px;
   line-height: 1.35;
@@ -630,33 +492,267 @@ body {
   width: 100%;
   margin-top: 10px;
   padding: 9px 12px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(239, 68, 68, 0.16);
+
   border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 999px;
+
+  background: rgba(239, 68, 68, 0.16);
   color: #fecaca;
+
   font-weight: 800;
   cursor: pointer;
 }
 
-/* Reduz ranking em telas baixas */
-@media (max-height: 820px) {
-  .ranking-list {
-    max-height: 120px;
-  }
-
-  .ranking-box {
-    padding: 10px;
-    margin-top: 12px;
-  }
-}
 /* ============================= */
-/* TELA DE GAME OVER MELHORADA */
+/* 9. CONQUISTAS */
 /* ============================= */
 
-.hidden {
-  display: none !important;
+.achievements-box {
+  margin-top: 0;
+  padding: 16px;
+
+  border-radius: 18px;
+
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  text-align: left;
 }
+
+.achievements-box h2 {
+  margin-bottom: 8px;
+
+  color: #ffffff;
+  font-size: 24px;
+  text-align: center;
+}
+
+.achievements-subtitle {
+  margin-bottom: 14px;
+
+  color: #cbd5e1;
+  font-size: 15px;
+  text-align: center;
+}
+
+.achievements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  max-height: 430px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.achievement-item {
+  padding: 14px 16px;
+
+  border-radius: 14px;
+
+  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  text-align: left;
+}
+
+.achievement-item.unlocked {
+  border-color: rgba(34, 197, 94, 0.55);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.achievement-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+
+  margin-bottom: 6px;
+
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.achievement-badge {
+  flex-shrink: 0;
+
+  color: #facc15;
+  font-size: 14px;
+}
+
+.achievement-description {
+  margin-bottom: 8px;
+
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.achievement-progress-text {
+  margin-bottom: 6px;
+
+  color: #e5e7eb;
+  font-size: 12px;
+}
+
+.achievement-progress-bar {
+  width: 100%;
+  height: 8px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.achievement-progress-fill {
+  height: 100%;
+  width: 0%;
+
+  border-radius: 999px;
+
+  background: linear-gradient(90deg, #22c55e, #86efac);
+
+  transition: width 0.2s ease;
+}
+
+.achievement-reward {
+  margin-top: 7px;
+
+  color: #fef3c7;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ============================= */
+/* 10. CONFIGURAÇÕES */
+/* ============================= */
+
+.config-box {
+  margin-top: 12px;
+  padding: 14px;
+
+  border-radius: 18px;
+
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  text-align: left;
+}
+
+.config-box h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.sound-menu-button {
+  width: 100%;
+  padding: 10px 14px;
+  margin: 10px 0 4px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+
+  background: rgba(15, 23, 42, 0.88);
+  color: #e5e7eb;
+
+  font-weight: 800;
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.sound-menu-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.instructions {
+  margin-top: 24px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.instructions h2 {
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+/* ============================= */
+/* 11. HUD */
+/* ============================= */
+
+.hud-button {
+  padding: 8px 12px;
+
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 999px;
+
+  background: rgba(250, 204, 21, 0.18);
+  color: #fef3c7;
+
+  font-weight: 800;
+  cursor: pointer;
+
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+}
+
+/* ============================= */
+/* 12. CANVAS E MINI MAPA */
+/* ============================= */
+
+#miniMapCanvas {
+  position: fixed !important;
+  top: 76px !important;
+  right: 18px !important;
+  z-index: 9999 !important;
+
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  width: 190px !important;
+  height: 130px !important;
+
+  border-radius: 16px;
+
+  background: rgba(15, 23, 42, 0.95);
+  border: 3px solid rgba(56, 189, 248, 0.85);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.55);
+
+  pointer-events: none;
+}
+
+/* ============================= */
+/* 13. TELA FINAL ANTIGA */
+/* ============================= */
+
+.result-box {
+  margin: 18px 0;
+  padding: 14px;
+
+  border-radius: 16px;
+
+  background: rgba(2, 6, 23, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  text-align: left;
+}
+
+.result-box p {
+  margin: 8px 0;
+  color: #e5e7eb;
+}
+
+/* ============================= */
+/* 14. GAME OVER MELHORADO */
+/* ============================= */
 
 .game-over-screen {
   position: fixed;
@@ -714,18 +810,18 @@ body {
 .game-over-card h1 {
   margin: 0 0 8px;
 
+  color: #ffd166;
   font-size: 34px;
   line-height: 1.1;
 
-  color: #ffd166;
   text-shadow: 0 2px 10px rgba(255, 209, 102, 0.35);
 }
 
 .game-over-subtitle {
   margin: 0 0 18px;
 
-  font-size: 15px;
   color: #d8e2ff;
+  font-size: 15px;
 }
 
 .match-summary {
@@ -750,15 +846,15 @@ body {
 
   margin-bottom: 4px;
 
-  font-size: 12px;
   color: #b7c4e8;
+  font-size: 12px;
 }
 
 .summary-item strong {
   display: block;
 
-  font-size: 20px;
   color: #ffffff;
+  font-size: 20px;
 }
 
 .coins-summary {
@@ -806,53 +902,126 @@ body {
 }
 
 .game-over-btn.primary {
-  color: #1b1b1b;
   background: #ffd166;
+  color: #1b1b1b;
 }
 
 .game-over-btn.secondary {
-  color: #ffffff;
   background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
-/* Ajuste para celular */
-@media (max-width: 480px) {
-  .game-over-card {
-    padding: 20px;
-  }
+/* ============================= */
+/* 15. TOAST DE CONQUISTA */
+/* ============================= */
 
-  .game-over-card h1 {
-    font-size: 28px;
-  }
+#achievementToast {
+  position: fixed !important;
+  z-index: 999999 !important;
 
-  .match-summary {
-    grid-template-columns: 1fr;
-  }
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
 
-  .coins-summary {
-    grid-column: span 1;
-  }
+  padding: 14px 16px !important;
 
-  .game-over-buttons {
-    flex-direction: column;
-  }
+  border-radius: 18px !important;
+
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.98),
+    rgba(20, 83, 45, 0.98)
+  ) !important;
+
+  border: 1px solid rgba(250, 204, 21, 0.45) !important;
+
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.45),
+    0 0 25px rgba(250, 204, 21, 0.14) !important;
+
+  color: #ffffff !important;
+  pointer-events: none !important;
+
+  transition:
+    transform 0.35s ease,
+    opacity 0.35s ease !important;
 }
 
-/* Ajuste para telas de notebook/desktop */
+#achievementToast.hidden {
+  display: none !important;
+}
+
+#achievementToast.show {
+  opacity: 1 !important;
+}
+
+#achievementToast .achievement-toast-icon {
+  width: 46px !important;
+  height: 46px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  flex-shrink: 0 !important;
+
+  border-radius: 50% !important;
+
+  background: rgba(250, 204, 21, 0.16) !important;
+  border: 1px solid rgba(250, 204, 21, 0.45) !important;
+
+  font-size: 24px !important;
+}
+
+#achievementToast .achievement-toast-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+
+  text-align: left !important;
+}
+
+#achievementToast .achievement-toast-content strong {
+  color: #fef3c7 !important;
+  font-size: 14px !important;
+}
+
+#achievementToast .achievement-toast-content span {
+  color: #ffffff !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+}
+
+#achievementToast .achievement-toast-content small {
+  color: #bbf7d0 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+/* ============================= */
+/* 16. RESPONSIVIDADE */
+/* ============================= */
+
+/* Desktop */
 @media (min-width: 901px) {
-  .menu-card {
-    max-width: 680px;
+  #achievementToast {
+    top: 90px !important;
+    right: 20px !important;
+    bottom: auto !important;
+    left: auto !important;
+
+    width: min(360px, calc(100vw - 32px)) !important;
+
+    transform: translateX(120%) !important;
+    opacity: 0 !important;
   }
 
-  .shop-box,
-  .ranking-box,
-  .difficulty-box,
-  .achievements-box {
-    max-width: 100%;
+  #achievementToast.show {
+    transform: translateX(0) !important;
+    opacity: 1 !important;
   }
 }
 
-/* Ajuste fino para celular */
+/* Tablet e mobile */
 @media (max-width: 900px) {
   .screen {
     padding: 14px;
@@ -864,11 +1033,12 @@ body {
     border-radius: 20px;
   }
 
-  .shop-box,
-  .ranking-box,
-  .difficulty-box {
-    margin-top: 12px;
-    padding: 10px;
+  .menu-card h1 {
+    font-size: 28px;
+  }
+
+  .mobile-controls {
+    display: flex;
   }
 
   .hud {
@@ -914,185 +1084,34 @@ body {
     height: 32px;
     font-size: 9px;
   }
+
+  #miniMapCanvas {
+    top: 86px !important;
+    right: 8px !important;
+    width: 96px !important;
+    height: 64px !important;
+    border-radius: 12px;
+  }
+
+  #achievementToast {
+    top: auto !important;
+    right: 12px !important;
+    bottom: 18px !important;
+    left: 12px !important;
+
+    width: auto !important;
+
+    transform: translateY(140%) !important;
+    opacity: 0 !important;
+  }
+
+  #achievementToast.show {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+  }
 }
 
-/* ============================= */
-/* ETAPA 16 - MENU COM ABAS */
-/* ============================= */
-
-.main-menu-card {
-  max-width: 680px;
-}
-
-.menu-subtitle {
-  margin-bottom: 12px;
-}
-
-.menu-tabs {
-  display: grid !important;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin: 18px 0 18px;
-}
-
-.menu-tab {
-  padding: 12px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.9);
-  color: #e5e7eb;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    background 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.menu-tab:hover {
-  transform: translateY(-1px);
-  border-color: rgba(34, 197, 94, 0.65);
-}
-
-.menu-tab.active {
-  background: rgba(34, 197, 94, 0.22);
-  border-color: rgba(34, 197, 94, 0.85);
-  color: #bbf7d0;
-}
-
-.menu-tab-content {
-  display: none !important;
-}
-
-.menu-tab-content.active {
-  display: block !important;
-}
-
-.config-box {
-  margin-top: 12px;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(2, 6, 23, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  text-align: left;
-}
-
-.config-box h2 {
-  margin-bottom: 12px;
-  font-size: 18px;
-  text-align: center;
-}
-
-.menu-tab-content .difficulty-box,
-.menu-tab-content .shop-box,
-.menu-tab-content .ranking-box {
-  margin-top: 0;
-}
-
-/* ============================= */
-/* ETAPA 17 - CONQUISTAS */
-/* ============================= */
-
-.achievements-box {
-  margin-top: 0;
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(2, 6, 23, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  text-align: left;
-}
-
-.achievements-box h2 {
-  margin-bottom: 8px;
-  font-size: 24px;
-  text-align: center;
-  color: #ffffff;
-}
-
-.achievements-subtitle {
-  margin-bottom: 14px;
-  color: #cbd5e1;
-  font-size: 15px;
-  text-align: center;
-}
-
-.achievements-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 430px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.achievement-item {
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: left;
-}
-
-.achievement-item.unlocked {
-  border-color: rgba(34, 197, 94, 0.55);
-  background: rgba(34, 197, 94, 0.12);
-}
-
-.achievement-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-  font-size: 15px;
-  font-weight: 900;
-  color: #ffffff;
-}
-
-.achievement-badge {
-  flex-shrink: 0;
-  color: #facc15;
-  font-size: 14px;
-}
-
-.achievement-description {
-  margin-bottom: 8px;
-  color: #cbd5e1;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.achievement-progress-text {
-  margin-bottom: 6px;
-  color: #e5e7eb;
-  font-size: 12px;
-}
-
-.achievement-progress-bar {
-  width: 100%;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.achievement-progress-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #22c55e, #86efac);
-  transition: width 0.2s ease;
-}
-
-.achievement-reward {
-  margin-top: 7px;
-  color: #fef3c7;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* Mobile: abas e conquistas menores */
+/* Celulares menores */
 @media (max-width: 560px) {
   .menu-tabs {
     gap: 5px;
@@ -1100,8 +1119,8 @@ body {
 
   .menu-tab {
     padding: 8px 3px;
-    font-size: 10px;
     border-radius: 12px;
+    font-size: 10px;
   }
 
   .main-menu-card {
@@ -1130,701 +1149,1317 @@ body {
     font-size: 11px;
   }
 }
+
+/* Celulares muito baixos */
+@media (max-height: 760px) {
+  .shop-box,
+  .difficulty-box,
+  .ranking-box {
+    margin-top: 12px;
+    padding: 10px;
+  }
+
+  .skin-card {
+    padding: 8px 6px;
+  }
+
+  .skin-preview {
+    width: 28px;
+    height: 28px;
+  }
+
+  .difficulty-button {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}
+
+/* Ajuste específico da tela de Game Over em celular */
+@media (max-width: 480px) {
+  .game-over-card {
+    padding: 20px;
+  }
+
+  .game-over-card h1 {
+    font-size: 28px;
+  }
+
+  .match-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .coins-summary {
+    grid-column: span 1;
+  }
+
+  .game-over-buttons {
+    flex-direction: column;
+  }
+}
 /* ============================= */
-/* ETAPA 18 - TOAST DE CONQUISTA */
-/* VERSÃO LIMPA WEB + MOBILE */
+/* CORREÇÃO HUD / TELA DO JOGO */
 /* ============================= */
 
-#achievementToast {
+/* Garante que a tela do jogo ocupe a tela inteira */
+.game-screen {
   position: fixed !important;
-  z-index: 999999 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  background: #020617 !important;
+}
+
+/* Canvas sempre atrás da HUD */
+#gameCanvas {
+  position: fixed !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #14532d !important;
+  touch-action: none !important;
+  cursor: crosshair !important;
+  z-index: 1 !important;
+}
+
+/* HUD no topo, em formato de pílulas */
+.hud {
+  position: fixed !important;
+  top: 10px !important;
+  left: 50% !important;
+  z-index: 50 !important;
 
   display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
   align-items: center !important;
-  gap: 12px !important;
 
-  padding: 14px 16px !important;
-  border-radius: 18px !important;
+  gap: 8px !important;
 
-  background: linear-gradient(
-    135deg,
-    rgba(15, 23, 42, 0.98),
-    rgba(20, 83, 45, 0.98)
-  ) !important;
+  width: calc(100% - 20px) !important;
+  max-width: 1100px !important;
 
-  border: 1px solid rgba(250, 204, 21, 0.45) !important;
+  transform: translateX(-50%) !important;
 
-  box-shadow:
-    0 18px 45px rgba(0, 0, 0, 0.45),
-    0 0 25px rgba(250, 204, 21, 0.14) !important;
+  background: transparent !important;
+  pointer-events: none !important;
+}
+
+/* Cada informação da HUD */
+.hud div {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: auto !important;
+  min-width: auto !important;
+
+  padding: 7px 11px !important;
+
+  border-radius: 999px !important;
+
+  background: rgba(15, 23, 42, 0.86) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
 
   color: #ffffff !important;
+
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Botões da HUD */
+.hud-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: auto !important;
+
+  padding: 7px 12px !important;
+
+  border-radius: 999px !important;
+
+  background: rgba(250, 204, 21, 0.22) !important;
+  border: 1px solid rgba(250, 204, 21, 0.42) !important;
+
+  color: #fef3c7 !important;
+
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  cursor: pointer !important;
+  pointer-events: auto !important;
+
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Mini mapa acima do canvas */
+#miniMapCanvas {
+  position: fixed !important;
+  top: 76px !important;
+  right: 18px !important;
+  z-index: 60 !important;
+
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  width: 190px !important;
+  height: 130px !important;
+
+  border-radius: 16px !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 3px solid rgba(56, 189, 248, 0.85) !important;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.55) !important;
+
   pointer-events: none !important;
-
-  transition:
-    transform 0.35s ease,
-    opacity 0.35s ease !important;
-}
-
-/* Quando estiver hidden, fica realmente escondido */
-#achievementToast.hidden {
-  display: none !important;
-}
-
-/* Desktop / web */
-@media (min-width: 901px) {
-  #achievementToast {
-    top: 90px !important;
-    right: 20px !important;
-    bottom: auto !important;
-    left: auto !important;
-
-    width: min(360px, calc(100vw - 32px)) !important;
-
-    transform: translateX(120%) !important;
-    opacity: 0 !important;
-  }
-
-  #achievementToast.show {
-    transform: translateX(0) !important;
-    opacity: 1 !important;
-  }
 }
 
 /* Mobile */
 @media (max-width: 900px) {
-  #achievementToast {
-    top: auto !important;
-    right: 12px !important;
-    bottom: 18px !important;
-    left: 12px !important;
-
-    width: auto !important;
-
-    transform: translateY(140%) !important;
-    opacity: 0 !important;
+  .hud {
+    top: 6px !important;
+    gap: 5px !important;
+    width: calc(100% - 8px) !important;
+    max-width: none !important;
   }
 
-  #achievementToast.show {
-    transform: translateY(0) !important;
-    opacity: 1 !important;
+  .hud div,
+  .hud-button {
+    padding: 5px 7px !important;
+    font-size: 10px !important;
+  }
+
+  #miniMapCanvas {
+    top: 86px !important;
+    right: 8px !important;
+    width: 96px !important;
+    height: 64px !important;
+    border-radius: 12px !important;
+  }
+}
+/* ============================= */
+/* CORREÇÃO CONTROLES MOBILE */
+/* ============================= */
+
+.mobile-controls {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 18px !important;
+  z-index: 80 !important;
+
+  display: none !important;
+  justify-content: space-between !important;
+  align-items: flex-end !important;
+
+  padding: 0 20px !important;
+
+  pointer-events: none !important;
+  touch-action: none !important;
+}
+
+/* Mostra os controles apenas em telas mobile/tablet */
+@media (max-width: 900px) {
+  .mobile-controls {
+    display: flex !important;
   }
 }
 
-#achievementToast .achievement-toast-icon {
-  width: 46px !important;
-  height: 46px !important;
+/* Área do joystick */
+.joystick-area {
+  width: 140px !important;
+  height: 140px !important;
 
-  display: grid !important;
-  place-items: center !important;
+  position: relative !important;
 
-  flex-shrink: 0 !important;
+  pointer-events: auto !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.joystick-base {
+  position: absolute !important;
+  left: 10px !important;
+  bottom: 0 !important;
+
+  width: 118px !important;
+  height: 118px !important;
 
   border-radius: 50% !important;
-  background: rgba(250, 204, 21, 0.16) !important;
-  border: 1px solid rgba(250, 204, 21, 0.45) !important;
 
-  font-size: 24px !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  border: 2px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35) !important;
 }
 
-#achievementToast .achievement-toast-content {
+.joystick-stick {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+
+  width: 54px !important;
+  height: 54px !important;
+
+  border-radius: 50% !important;
+
+  background: rgba(56, 189, 248, 0.95) !important;
+  border: 2px solid rgba(255, 255, 255, 0.55) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35) !important;
+
+  transform: translate(-50%, -50%) !important;
+}
+
+/* Botões de ação */
+.action-buttons {
   display: flex !important;
   flex-direction: column !important;
-  gap: 3px !important;
-  text-align: left !important;
+  gap: 10px !important;
+
+  pointer-events: auto !important;
+  touch-action: none !important;
 }
 
-#achievementToast .achievement-toast-content strong {
-  color: #fef3c7 !important;
-  font-size: 14px !important;
-}
+.action-buttons button,
+.weapon-buttons button {
+  pointer-events: auto !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 
-#achievementToast .achievement-toast-content span {
+  border: none !important;
+  border-radius: 16px !important;
+
+  background: rgba(15, 23, 42, 0.88) !important;
   color: #ffffff !important;
-  font-size: 16px !important;
+
   font-weight: 900 !important;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
 }
 
-#achievementToast .achievement-toast-content small {
-  color: #bbf7d0 !important;
+.action-buttons > button {
+  width: 112px !important;
+  height: 48px !important;
   font-size: 13px !important;
-  font-weight: 800 !important;
 }
 
-/* ============================= */
-/* ETAPA 17 - CONQUISTAS */
-/* ============================= */
+/* Botões de armas */
+.weapon-buttons {
+  display: flex !important;
+  gap: 6px !important;
+  justify-content: flex-end !important;
 
-.menu-tabs-five {
-  grid-template-columns: repeat(5, 1fr) !important;
+  width: 180px !important;
+
+  transform: translateX(-68px) !important;
 }
 
-.achievements-box {
-  margin-top: 0;
+.weapon-buttons button {
+  width: 58px !important;
+  height: 34px !important;
+  padding: 0 !important;
+
+  border-radius: 10px !important;
+
+  font-size: 10px !important;
+}
+
+/* Ajuste em celulares menores */
+@media (max-width: 900px) {
+  .mobile-controls {
+    bottom: 14px !important;
+    padding: 0 16px !important;
+  }
+
+  .joystick-area {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  .joystick-base {
+    width: 104px !important;
+    height: 104px !important;
+  }
+
+  .joystick-stick {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .action-buttons > button {
+    width: 96px !important;
+    height: 42px !important;
+    font-size: 12px !important;
+  }
+
+  .weapon-buttons {
+    width: 160px !important;
+    transform: translateX(-56px) !important;
+  }
+
+  .weapon-buttons button {
+    width: 52px !important;
+    height: 32px !important;
+    font-size: 9px !important;
+  }
+}
+/* ============================= */
+/* ETAPA 21 - SELEÇÃO DE MAPA */
+/* ============================= */
+
+.map-box {
+  margin-top: 14px;
   padding: 14px;
+
   border-radius: 18px;
+
   background: rgba(2, 6, 23, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  text-align: left;
-}
 
-.achievements-box h2 {
-  margin-bottom: 8px;
-  font-size: 18px;
   text-align: center;
 }
 
-.achievements-subtitle {
+.map-box h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.map-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.map-button {
+  padding: 10px 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+
+  background: rgba(15, 23, 42, 0.88);
+  color: #ffffff;
+
+  font-weight: 800;
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.map-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.75);
+}
+
+.map-button.active {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.9);
+  color: #bae6fd;
+}
+
+.map-description {
+  min-height: 20px;
+  margin-top: 10px;
+
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+/* Mobile */
+@media (max-width: 560px) {
+  .map-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .map-button {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}
+/* ============================= */
+/* ETAPA 22 - MODOS DE PARTIDA */
+/* ============================= */
+
+.mode-box {
+  margin-top: 14px;
+  padding: 14px;
+
+  border-radius: 18px;
+
+  background: rgba(2, 6, 23, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  text-align: center;
+}
+
+.mode-box h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.mode-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.mode-button {
+  padding: 10px 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+
+  background: rgba(15, 23, 42, 0.88);
+  color: #ffffff;
+
+  font-weight: 800;
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.mode-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(250, 204, 21, 0.75);
+}
+
+.mode-button.active {
+  background: rgba(250, 204, 21, 0.18);
+  border-color: rgba(250, 204, 21, 0.9);
+  color: #fef3c7;
+}
+
+.mode-description {
+  min-height: 20px;
+  margin-top: 10px;
+
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+/* Mobile */
+@media (max-width: 560px) {
+  .mode-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mode-button {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}
+/* ============================= */
+/* ETAPA 23 - LOJA AVANÇADA */
+/* ============================= */
+
+.advanced-shop-box {
+  text-align: left;
+}
+
+.shop-subtitle {
   margin-bottom: 12px;
   color: #cbd5e1;
   font-size: 13px;
   text-align: center;
 }
 
-.achievements-list {
-  display: flex;
-  flex-direction: column;
+.shop-wallet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
+
+  margin-bottom: 14px;
+}
+
+.shop-wallet div {
+  padding: 10px 12px;
+
+  border-radius: 14px;
+
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  color: #fef3c7;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.shop-wallet strong {
+  color: #ffffff;
+}
+
+.shop-category-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+
+  margin-bottom: 14px;
+}
+
+.shop-category-button {
+  padding: 10px 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.shop-category-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(250, 204, 21, 0.65);
+}
+
+.shop-category-button.active {
+  background: rgba(250, 204, 21, 0.18);
+  border-color: rgba(250, 204, 21, 0.85);
+  color: #fef3c7;
+}
+
+.shop-items-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+
   max-height: 360px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
-.achievement-item {
-  padding: 11px 12px;
-  border-radius: 14px;
+.shop-item-card {
+  padding: 12px 10px;
+
+  border-radius: 16px;
+
   background: rgba(15, 23, 42, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
+  border: 1px solid rgba(255, 255, 255, 0.11);
 
-.achievement-item.unlocked {
-  border-color: rgba(34, 197, 94, 0.55);
-  background: rgba(34, 197, 94, 0.12);
-}
-
-.achievement-title {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 6px;
-  font-size: 14px;
-  font-weight: 900;
-  color: #ffffff;
-}
-
-.achievement-badge {
-  flex-shrink: 0;
-  color: #facc15;
-  font-size: 13px;
-}
-
-.achievement-description {
-  margin-bottom: 8px;
-  color: #cbd5e1;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.achievement-progress-text {
-  margin-bottom: 6px;
-  color: #e5e7eb;
-  font-size: 12px;
-}
-
-.achievement-progress-bar {
-  width: 100%;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.achievement-progress-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #22c55e, #86efac);
-  transition: width 0.2s ease;
-}
-
-.achievement-reward {
-  margin-top: 7px;
-  color: #fef3c7;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* Mobile: 5 abas menores */
-@media (max-width: 560px) {
-  .menu-tabs-five {
-    gap: 5px;
-  }
-
-  .menu-tabs-five .menu-tab {
-    padding: 8px 3px;
-    font-size: 10px;
-  }
-
-  .achievements-list {
-    max-height: 300px;
-  }
-}
-/* ============================= */
-/* CORREÇÃO FINAL - CONQUISTAS */
-/* Vale para desktop e mobile */
-/* ============================= */
-
-.achievements-box {
-  margin-top: 0 !important;
-  padding: 16px !important;
-  border-radius: 18px !important;
-  background: rgba(2, 6, 23, 0.35) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  text-align: left !important;
-}
-
-.achievements-box h2 {
-  margin-bottom: 8px !important;
-  font-size: 24px !important;
-  text-align: center !important;
-  color: #ffffff !important;
-}
-
-.achievements-subtitle {
-  margin-bottom: 14px !important;
-  color: #cbd5e1 !important;
-  font-size: 15px !important;
-  text-align: center !important;
-}
-
-.achievements-list {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-  max-height: 380px !important;
-  overflow-y: auto !important;
-  padding-right: 4px !important;
-}
-
-.achievement-item {
-  padding: 12px 14px !important;
-  border-radius: 14px !important;
-  background: rgba(15, 23, 42, 0.86) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  text-align: left !important;
-}
-
-.achievement-item.unlocked {
-  border-color: rgba(34, 197, 94, 0.55) !important;
-  background: rgba(34, 197, 94, 0.12) !important;
-}
-
-.achievement-title {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  gap: 10px !important;
-  margin-bottom: 6px !important;
-  font-size: 15px !important;
-  font-weight: 900 !important;
-  color: #ffffff !important;
-}
-
-.achievement-badge {
-  flex-shrink: 0 !important;
-  color: #facc15 !important;
-  font-size: 14px !important;
-}
-
-.achievement-description {
-  margin-bottom: 8px !important;
-  color: #cbd5e1 !important;
-  font-size: 13px !important;
-  line-height: 1.4 !important;
-}
-
-.achievement-progress-text {
-  margin-bottom: 6px !important;
-  color: #e5e7eb !important;
-  font-size: 12px !important;
-}
-
-.achievement-progress-bar {
-  width: 100% !important;
-  height: 8px !important;
-  overflow: hidden !important;
-  border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.14) !important;
-}
-
-.achievement-progress-fill {
-  height: 100% !important;
-  width: 0%;
-  border-radius: 999px !important;
-  background: linear-gradient(90deg, #22c55e, #86efac) !important;
-  transition: width 0.2s ease !important;
-}
-
-.achievement-reward {
-  margin-top: 7px !important;
-  color: #fef3c7 !important;
-  font-size: 12px !important;
-  font-weight: 700 !important;
-}
-
-/* Desktop: deixa a área mais bonita e proporcional */
-@media (min-width: 901px) {
-  .main-menu-card {
-    max-width: 680px !important;
-  }
-
-  .achievements-box {
-    max-width: 100% !important;
-  }
-
-  .achievements-list {
-    max-height: 430px !important;
-  }
-
-  .achievement-item {
-    padding: 14px 16px !important;
-  }
-}
-
-/* Mobile: mantém compacto como já ficou bom */
-@media (max-width: 560px) {
-  .achievements-box h2 {
-    font-size: 18px !important;
-  }
-
-  .achievements-subtitle {
-    font-size: 12px !important;
-  }
-
-  .achievements-list {
-    max-height: 300px !important;
-  }
-
-  .achievement-title {
-    font-size: 13px !important;
-  }
-
-  .achievement-description,
-  .achievement-progress-text,
-  .achievement-reward {
-    font-size: 11px !important;
-  }
-}
-/* ============================= */
-/* ETAPA 18 - TOAST DE CONQUISTA */
-/* ============================= */
-
-.achievement-toast {
-  position: fixed;
-  top: 90px;
-  right: 20px;
-  z-index: 20000;
-
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  width: min(360px, calc(100vw - 32px));
-  padding: 14px 16px;
-
-  border-radius: 18px;
-
-  background: linear-gradient(
-    135deg,
-    rgba(15, 23, 42, 0.98),
-    rgba(20, 83, 45, 0.98)
-  );
-
-  border: 1px solid rgba(250, 204, 21, 0.45);
-
-  box-shadow:
-    0 18px 45px rgba(0, 0, 0, 0.45),
-    0 0 25px rgba(250, 204, 21, 0.14);
-
-  color: #ffffff;
-
-  transform: translateX(120%);
-  opacity: 0;
-  pointer-events: none;
+  text-align: center;
 
   transition:
-    transform 0.35s ease,
-    opacity 0.35s ease;
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
-.achievement-toast.show {
-  transform: translateX(0);
-  opacity: 1;
+.shop-item-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 197, 94, 0.55);
+  background: rgba(15, 23, 42, 0.96);
 }
 
-.achievement-toast-icon {
+.shop-item-preview {
   width: 46px;
   height: 46px;
+
+  margin: 0 auto 8px;
 
   display: grid;
   place-items: center;
 
-  flex-shrink: 0;
-
   border-radius: 50%;
-  background: rgba(250, 204, 21, 0.16);
-  border: 1px solid rgba(250, 204, 21, 0.45);
 
-  font-size: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+
+  font-size: 22px;
 }
 
-.achievement-toast-content {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  text-align: left;
-}
+.shop-item-title {
+  display: block;
 
-.achievement-toast-content strong {
-  color: #fef3c7;
-  font-size: 14px;
-}
+  margin-bottom: 4px;
 
-.achievement-toast-content span {
   color: #ffffff;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 900;
 }
 
-.achievement-toast-content small {
-  color: #bbf7d0;
-  font-size: 13px;
+.shop-item-description {
+  min-height: 30px;
+
+  margin-bottom: 8px;
+
+  color: #cbd5e1;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.shop-item-price {
+  margin-bottom: 8px;
+
+  color: #fef3c7;
+  font-size: 12px;
   font-weight: 800;
 }
 
-/* Mobile: toast aparece embaixo para não cobrir HUD */
-@media (max-width: 900px) {
-  .achievement-toast {
-    top: auto;
-    right: 12px;
-    bottom: 18px;
-    left: 12px;
+.shop-item-button {
+  width: 100%;
 
-    width: auto;
+  padding: 8px 10px;
 
-    transform: translateY(140%);
-  }
+  border: none;
+  border-radius: 999px;
 
-  .achievement-toast.show {
-    transform: translateY(0);
-  }
-}
-/* ============================= */
-/* CORREÇÃO FINAL - TOAST DESKTOP */
-/* ============================= */
+  background: rgba(34, 197, 94, 0.22);
+  color: #bbf7d0;
 
-#achievementToast.achievement-toast {
-  position: fixed !important;
-  top: 90px !important;
-  right: 20px !important;
-  bottom: auto !important;
-  left: auto !important;
-  z-index: 999999 !important;
+  font-size: 12px;
+  font-weight: 900;
 
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-
-  width: min(360px, calc(100vw - 32px)) !important;
-  padding: 14px 16px !important;
-
-  border-radius: 18px !important;
-
-  background: linear-gradient(
-    135deg,
-    rgba(15, 23, 42, 0.98),
-    rgba(20, 83, 45, 0.98)
-  ) !important;
-
-  border: 1px solid rgba(250, 204, 21, 0.45) !important;
-
-  box-shadow:
-    0 18px 45px rgba(0, 0, 0, 0.45),
-    0 0 25px rgba(250, 204, 21, 0.14) !important;
-
-  color: #ffffff !important;
-
-  transform: translateX(120%) !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-
-  transition:
-    transform 0.35s ease,
-    opacity 0.35s ease !important;
+  cursor: pointer;
 }
 
-#achievementToast.achievement-toast.show {
-  transform: translateX(0) !important;
-  opacity: 1 !important;
+.shop-item-button.buy {
+  background: rgba(250, 204, 21, 0.2);
+  color: #fef3c7;
 }
 
-#achievementToast .achievement-toast-icon {
-  width: 46px !important;
-  height: 46px !important;
-
-  display: grid !important;
-  place-items: center !important;
-
-  flex-shrink: 0 !important;
-
-  border-radius: 50% !important;
-  background: rgba(250, 204, 21, 0.16) !important;
-  border: 1px solid rgba(250, 204, 21, 0.45) !important;
-
-  font-size: 24px !important;
+.shop-item-button.equipped {
+  background: rgba(56, 189, 248, 0.22);
+  color: #bae6fd;
+  cursor: default;
 }
 
-#achievementToast .achievement-toast-content {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 3px !important;
-  text-align: left !important;
+.shop-item-button.locked {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
 }
 
-#achievementToast .achievement-toast-content strong {
-  color: #fef3c7 !important;
-  font-size: 14px !important;
+.shop-item-card.equipped {
+  border-color: rgba(56, 189, 248, 0.75);
 }
 
-#achievementToast .achievement-toast-content span {
-  color: #ffffff !important;
-  font-size: 16px !important;
-  font-weight: 900 !important;
-}
-
-#achievementToast .achievement-toast-content small {
-  color: #bbf7d0 !important;
-  font-size: 13px !important;
-  font-weight: 800 !important;
-}
-
-/* Mobile: embaixo para não cobrir HUD */
-@media (max-width: 900px) {
-  #achievementToast.achievement-toast {
-    top: auto !important;
-    right: 12px !important;
-    bottom: 18px !important;
-    left: 12px !important;
-
-    width: auto !important;
-
-    transform: translateY(140%) !important;
-  }
-
-  #achievementToast.achievement-toast.show {
-    transform: translateY(0) !important;
-    opacity: 1 !important;
-  }
-}
-/* ============================= */
-/* CORREÇÃO FINAL - TOAST WEB/MOBILE */
-/* ============================= */
-
-#achievementToast {
-  position: fixed !important;
-  z-index: 999999 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 14px 16px !important;
-  border-radius: 18px !important;
-  background: linear-gradient(
-    135deg,
-    rgba(15, 23, 42, 0.98),
-    rgba(20, 83, 45, 0.98)
-  ) !important;
-  border: 1px solid rgba(250, 204, 21, 0.45) !important;
-  box-shadow:
-    0 18px 45px rgba(0, 0, 0, 0.45),
-    0 0 25px rgba(250, 204, 21, 0.14) !important;
-  color: #ffffff !important;
-  pointer-events: none !important;
-  transition: transform 0.35s ease, opacity 0.35s ease !important;
-}
-
-/* Esconde quando tiver hidden */
-#achievementToast.hidden {
-  display: none !important;
-}
-
-/* Desktop */
-@media (min-width: 901px) {
-  #achievementToast {
-    top: 90px !important;
-    right: 20px !important;
-    bottom: auto !important;
-    left: auto !important;
-    width: min(360px, calc(100vw - 32px)) !important;
-    transform: translateX(120%) !important;
-    opacity: 0 !important;
-  }
-
-  #achievementToast.show {
-    transform: translateX(0) !important;
-    opacity: 1 !important;
-  }
+.shop-item-card.owned {
+  border-color: rgba(34, 197, 94, 0.55);
 }
 
 /* Mobile */
+@media (max-width: 560px) {
+  .shop-wallet {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-category-button {
+    padding: 8px 5px;
+    font-size: 11px;
+  }
+
+  .shop-items-grid {
+    max-height: 300px;
+  }
+
+  .shop-item-card {
+    padding: 10px 8px;
+  }
+
+  .shop-item-preview {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ============================= */
+/* REFINO MOBILE - 2026-05-07 */
+/* ============================= */
+
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+body,
+button,
+canvas {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-screen {
+  height: 100dvh !important;
+}
+
+#gameCanvas {
+  width: 100dvw !important;
+  height: 100dvh !important;
+}
+
 @media (max-width: 900px) {
-  #achievementToast {
-    top: auto !important;
-    right: 12px !important;
-    bottom: 18px !important;
-    left: 12px !important;
+  .hud {
+    top: max(6px, env(safe-area-inset-top)) !important;
+    left: 8px !important;
+    right: 8px !important;
     width: auto !important;
-    transform: translateY(140%) !important;
-    opacity: 0 !important;
+    transform: none !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    max-height: 64px !important;
+    overflow: hidden !important;
   }
 
-  #achievementToast.show {
-    transform: translateY(0) !important;
-    opacity: 1 !important;
+  .hud div,
+  .hud-button {
+    min-height: 28px !important;
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .hud div:nth-of-type(8),
+  .hud div:nth-of-type(9),
+  .hud div:nth-of-type(10) {
+    display: none !important;
+  }
+
+  #miniMapCanvas {
+    top: calc(max(8px, env(safe-area-inset-top)) + 68px) !important;
+    width: 104px !important;
+    height: 68px !important;
+    border-width: 2px !important;
+  }
+
+  .mobile-controls {
+    bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left)) !important;
+  }
+
+  .joystick-area {
+    width: 132px !important;
+    height: 132px !important;
+  }
+
+  .joystick-base {
+    width: 112px !important;
+    height: 112px !important;
+  }
+
+  .action-buttons {
+    gap: 8px !important;
+    align-items: flex-end !important;
+  }
+
+  .action-buttons > button {
+    width: 104px !important;
+    height: 46px !important;
+    border-radius: 14px !important;
+    font-size: 12px !important;
+  }
+
+  .weapon-buttons {
+    width: auto !important;
+    transform: none !important;
+    gap: 5px !important;
+  }
+
+  .weapon-buttons button {
+    width: 52px !important;
+    height: 32px !important;
   }
 }
 
-#achievementToast .achievement-toast-icon {
-  width: 46px !important;
-  height: 46px !important;
-  display: grid !important;
-  place-items: center !important;
-  flex-shrink: 0 !important;
-  border-radius: 50% !important;
-  background: rgba(250, 204, 21, 0.16) !important;
-  border: 1px solid rgba(250, 204, 21, 0.45) !important;
-  font-size: 24px !important;
+@media (max-width: 420px) {
+  .mobile-controls {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .joystick-area {
+    width: 118px !important;
+    height: 118px !important;
+  }
+
+  .joystick-base {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  .joystick-stick {
+    width: 46px !important;
+    height: 46px !important;
+  }
+
+  .action-buttons > button {
+    width: 92px !important;
+    height: 42px !important;
+    font-size: 11px !important;
+  }
+
+  .weapon-buttons button {
+    width: 47px !important;
+    font-size: 8px !important;
+  }
 }
 
-#achievementToast .achievement-toast-content {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 3px !important;
-  text-align: left !important;
+@media (max-height: 520px) and (orientation: landscape) {
+  .hud {
+    max-height: 38px !important;
+  }
+
+  .hud div:nth-of-type(n+6) {
+    display: none !important;
+  }
+
+  #miniMapCanvas {
+    top: 48px !important;
+    width: 92px !important;
+    height: 60px !important;
+  }
+
+  .mobile-controls {
+    bottom: 8px !important;
+  }
+
+  .joystick-area {
+    width: 108px !important;
+    height: 108px !important;
+  }
+
+  .joystick-base {
+    width: 92px !important;
+    height: 92px !important;
+  }
+
+  .action-buttons {
+    gap: 6px !important;
+  }
+
+  .action-buttons > button {
+    width: 88px !important;
+    height: 36px !important;
+  }
+}
+/* ============================= */
+/* MENU MOBILE RESPONSIVO - 2026-05-07 */
+/* ============================= */
+
+@media (max-width: 640px) {
+  .screen {
+    justify-content: center !important;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)) !important;
+  }
+
+  .menu-card,
+  .main-menu-card {
+    width: min(100%, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    padding: 16px 12px !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+  }
+
+  .menu-card h1 {
+    margin-bottom: 10px !important;
+    font-size: clamp(24px, 7vw, 30px) !important;
+    line-height: 1.1 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .menu-card p,
+  .menu-subtitle,
+  .difficulty-description,
+  .map-description,
+  .mode-description,
+  .shop-subtitle,
+  .achievements-subtitle {
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+    hyphens: auto !important;
+    text-align: center !important;
+  }
+
+  .menu-subtitle {
+    padding: 0 4px !important;
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+  }
+
+  .coins-preview {
+    width: 100% !important;
+    margin: 12px 0 !important;
+    padding: 11px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .menu-tabs,
+  .menu-tabs-five {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin: 14px 0 !important;
+  }
+
+  .menu-tab {
+    min-width: 0 !important;
+    min-height: 38px !important;
+    padding: 9px 4px !important;
+    border-radius: 12px !important;
+    font-size: clamp(10px, 2.9vw, 12px) !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .difficulty-box,
+  .map-box,
+  .mode-box,
+  .shop-box,
+  .ranking-box,
+  .achievements-box,
+  .config-box {
+    width: 100% !important;
+    margin-top: 12px !important;
+    padding: 14px 10px !important;
+    border-radius: 18px !important;
+  }
+
+  .difficulty-box h2,
+  .map-box h2,
+  .mode-box h2,
+  .shop-box h2,
+  .ranking-box h2,
+  .achievements-box h2,
+  .config-box h2 {
+    font-size: 20px !important;
+    line-height: 1.15 !important;
+  }
+
+  .difficulty-buttons,
+  .map-buttons,
+  .mode-buttons,
+  .shop-category-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .difficulty-button,
+  .map-button,
+  .mode-button,
+  .shop-category-button {
+    min-width: 0 !important;
+    min-height: 42px !important;
+    padding: 9px 6px !important;
+    font-size: clamp(12px, 3.4vw, 14px) !important;
+    line-height: 1.1 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .danger-button {
+    min-height: 46px !important;
+    border-radius: 14px !important;
+    font-size: 16px !important;
+  }
 }
 
-#achievementToast .achievement-toast-content strong {
-  color: #fef3c7 !important;
-  font-size: 14px !important;
+@media (max-width: 380px) {
+  .screen {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .menu-card,
+  .main-menu-card {
+    width: min(100%, calc(100vw - 16px)) !important;
+    max-width: calc(100vw - 16px) !important;
+    padding: 14px 8px !important;
+  }
+
+  .menu-tabs,
+  .menu-tabs-five {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .difficulty-buttons {
+    grid-template-columns: 1fr !important;
+  }
 }
 
-#achievementToast .achievement-toast-content span {
-  color: #ffffff !important;
-  font-size: 16px !important;
-  font-weight: 900 !important;
+@media (hover: none) and (pointer: coarse) {
+  .menu-tab:hover,
+  .difficulty-button:hover,
+  .map-button:hover,
+  .mode-button:hover,
+  .shop-category-button:hover,
+  .primary-button:hover,
+  .secondary-button:hover,
+  .danger-button:hover {
+    transform: none !important;
+  }
+}
+/* AJUSTE FINO DA LOJA EM CELULARES PEQUENOS */
+@media (max-width: 380px) {
+  .shop-items-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
-#achievementToast .achievement-toast-content small {
-  color: #bbf7d0 !important;
-  font-size: 13px !important;
-  font-weight: 800 !important;
+/* ===============================
+   ETAPA 26 - SELEÇÃO VISUAL DE MAPAS
+================================ */
+
+.map-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.map-button {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.78);
+  color: #e5e7eb;
+  border-radius: 18px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.map-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.65);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+  background: rgba(30, 41, 59, 0.92);
+}
+
+.map-button.active {
+  border-color: rgba(250, 204, 21, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(250, 204, 21, 0.16),
+    0 16px 36px rgba(0, 0, 0, 0.34);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.98),
+    rgba(15, 23, 42, 0.96)
+  );
+}
+
+.map-card-preview {
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.16);
+}
+
+.random-preview {
+  background: linear-gradient(135deg, #0f172a, #38bdf8, #a855f7);
+}
+
+.map-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-card-content strong {
+  font-size: 0.96rem;
+  color: #ffffff;
+}
+
+.map-card-content small {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  color: #cbd5e1;
+}
+
+.map-card-content em {
+  width: fit-content;
+  margin-top: 2px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.map-button.active .map-card-content em {
+  background: rgba(250, 204, 21, 0.16);
+  color: #fde68a;
+}
+
+@media (max-width: 640px) {
+  .map-options {
+    grid-template-columns: 1fr;
+  }
+
+  .map-button {
+    padding: 9px;
+  }
+
+  .map-card-preview {
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    font-size: 24px;
+  }
+}
+
+/* ===============================
+   ETAPA 29 - AJUSTES MOBILE
+================================ */
+
+@media (max-width: 900px) {
+  body {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  #gameCanvas {
+    touch-action: none;
+  }
+
+  .hud,
+  .game-hud,
+  #hud {
+    max-width: calc(100vw - 12px);
+    font-size: 0.78rem;
+  }
+
+  .hud-item,
+  .status-item {
+    padding: 5px 7px;
+    border-radius: 10px;
+  }
+
+  #miniMapCanvas {
+    border-width: 2px !important;
+    border-radius: 12px !important;
+  }
+
+  #joystickArea {
+    left: 14px;
+    bottom: 18px;
+    width: 132px;
+    height: 132px;
+  }
+
+  #joystickBase {
+    width: 108px;
+    height: 108px;
+  }
+
+  #joystickStick {
+    width: 46px;
+    height: 46px;
+  }
+
+  .mobile-action-button,
+  .mobile-button,
+  #mobileShootButton,
+  #mobileReloadButton,
+  #mobileHealButton,
+  #mobilePistolButton,
+  #mobileRifleButton,
+  #mobileShotgunButton {
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 0.78rem;
+    border-radius: 999px;
+  }
+
+  #mobileShootButton {
+    width: 68px;
+    height: 68px;
+    font-size: 1rem;
+  }
+
+  #mobileReloadButton,
+  #mobileHealButton {
+    width: 54px;
+    height: 54px;
+  }
+
+  #mobilePistolButton,
+  #mobileRifleButton,
+  #mobileShotgunButton {
+    width: 46px;
+    height: 46px;
+    font-size: 0.72rem;
+  }
+
+  .pause-button,
+  #pauseButton,
+  #soundButton {
+    min-height: 38px;
+    padding: 7px 10px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 420px) {
+  #joystickArea {
+    left: 10px;
+    bottom: 14px;
+    width: 118px;
+    height: 118px;
+  }
+
+  #joystickBase {
+    width: 96px;
+    height: 96px;
+  }
+
+  #joystickStick {
+    width: 42px;
+    height: 42px;
+  }
+
+  #mobileShootButton {
+    width: 62px;
+    height: 62px;
+  }
+
+  #mobileReloadButton,
+  #mobileHealButton {
+    width: 50px;
+    height: 50px;
+  }
+
+  #mobilePistolButton,
+  #mobileRifleButton,
+  #mobileShotgunButton {
+    width: 42px;
+    height: 42px;
+  }
 }

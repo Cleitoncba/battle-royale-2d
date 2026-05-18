@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
 
   <!-- Faz o jogo se adaptar melhor ao celular -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
   <!-- Cor da barra do navegador no mobile -->
   <meta name="theme-color" content="#111827" />
@@ -77,50 +77,114 @@
         Normal: experiência equilibrada.
       </p>
     </div>
+    
+    <div class="map-box">
+  <h2>Mapa</h2>
 
-    <button id="startButton" class="primary-button">
+  <div class="map-options">
+  <button type="button" class="map-button" data-map="random">
+    Aleatório
+  </button>
+
+  <button type="button" class="map-button" data-map="forest">
+    Floresta
+  </button>
+
+  <button type="button" class="map-button" data-map="desert">
+    Deserto
+  </button>
+
+  <button type="button" class="map-button" data-map="snow">
+    Neve
+  </button>
+
+  <button type="button" class="map-button" data-map="city">
+    Cidade
+  </button>
+
+  <button type="button" class="map-button" data-map="swamp">
+    Pântano
+  </button>
+
+  <button type="button" class="map-button" data-map="arena">
+    Arena
+  </button>
+</div>
+
+  <p id="mapDescription" class="map-description">
+    Aleatório: o mapa será sorteado a cada partida.
+  </p>
+</div>
+<div class="mode-box">
+  <h2>Modo de Partida</h2>
+
+  <div class="mode-buttons">
+    <button type="button" class="mode-button" data-mode="classic">
+      Clássico
+    </button>
+
+    <button type="button" class="mode-button" data-mode="fast">
+      Rápido
+    </button>
+
+    <button type="button" class="mode-button" data-mode="hardcore">
+      Hardcore
+    </button>
+
+    <button type="button" class="mode-button" data-mode="highLoot">
+      Loot Alto
+    </button>
+  </div>
+
+  <p id="modeDescription" class="mode-description">
+    Clássico: experiência padrão e equilibrada.
+  </p>
+</div>
+  <button id="startButton" class="primary-button">
       Jogar agora
     </button>
   </div>
 
   <!-- Aba Loja -->
-  <div id="tab-shop" class="menu-tab-content">
-    <div class="shop-box">
-      <h2>Loja de Skins</h2>
+<div id="tab-shop" class="menu-tab-content">
+  <div class="shop-box advanced-shop-box">
+    <h2>Loja</h2>
 
-      <div class="skin-grid">
-        <button class="skin-card" data-skin="blue">
-          <span class="skin-preview skin-blue"></span>
-          <strong>Azul</strong>
-          <small>Grátis</small>
-          <em id="skinStatusBlue">Equipada</em>
-        </button>
+    <p class="shop-subtitle">
+      Compre e equipe itens visuais para personalizar sua partida.
+    </p>
 
-        <button class="skin-card" data-skin="green">
-          <span class="skin-preview skin-green"></span>
-          <strong>Verde</strong>
-          <small>100 coins</small>
-          <em id="skinStatusGreen">Comprar</em>
-        </button>
-
-        <button class="skin-card" data-skin="purple">
-          <span class="skin-preview skin-purple"></span>
-          <strong>Roxa</strong>
-          <small>250 coins</small>
-          <em id="skinStatusPurple">Comprar</em>
-        </button>
-
-        <button class="skin-card" data-skin="gold">
-          <span class="skin-preview skin-gold"></span>
-          <strong>Dourada</strong>
-          <small>500 coins</small>
-          <em id="skinStatusGold">Comprar</em>
-        </button>
+    <div class="shop-wallet">
+      <div>
+        🪙 Coins: <strong id="shopCoinsText">0</strong>
       </div>
 
-      <p id="shopMessage" class="shop-message"></p>
+      <div>
+        💎 Gemas: <strong id="shopGemsText">0</strong>
+      </div>
     </div>
+
+    <div class="shop-category-tabs">
+      <button type="button" class="shop-category-button active" data-shop-category="character">
+        Personagem
+      </button>
+
+      <button type="button" class="shop-category-button" data-shop-category="weapon">
+        Armas
+      </button>
+
+      <button type="button" class="shop-category-button" data-shop-category="effect">
+        Efeitos
+      </button>
+    </div>
+
+    <div id="shopItemsGrid" class="shop-items-grid">
+      <!-- Os itens da loja serão renderizados pelo JavaScript -->
+    </div>
+
+    <p id="shopMessage" class="shop-message"></p>
   </div>
+</div>
 
   <!-- Aba Ranking -->
   <div id="tab-ranking" class="menu-tab-content">
@@ -185,10 +249,12 @@
       <div>👥 Inimigos: <span id="botsText">0</span></div>
       <div>🩹 Kits: <span id="medkitsText">2</span></div>
       <div>🛡️ Escudo: <span id="shieldText">0</span></div>
-      <div>⚙️ Modo: <span id="difficultyText">Normal</span></div>
+      <div>⚙️ Dificuldade: <span id="difficultyText">Normal</span></div>
+      <div>🎮 Modo: <span id="gameModeText">Clássico</span></div>
+      <div>🗺️ Mapa: <span id="mapText">Floresta</span></div>
       <div>🌀 Zona: <span id="zoneText">100%</span></div>
-      <button id="pauseButton" class="hud-button">⏸️ Pausar</button>
-      <button id="soundButton" class="hud-button">🔊 Som</button>
+      <button type="button" id="pauseButton" class="hud-button">⏸️ Pausar</button>
+      <button type="button" id="soundButton" class="hud-button">🔊 Som</button>
     </div>
 
     <!-- Canvas principal -->
@@ -206,14 +272,14 @@
 </div>
 
 <div class="action-buttons">
-  <button id="mobileShootButton">Atirar</button>
-  <button id="mobileReloadButton">Recarregar</button>
-  <button id="mobileHealButton">Curar</button>
+  <button type="button" id="mobileShootButton">Atirar</button>
+  <button type="button" id="mobileReloadButton">Recarregar</button>
+  <button type="button" id="mobileHealButton">Curar</button>
 
   <div class="weapon-buttons">
-    <button id="mobilePistolButton">Pistola</button>
-    <button id="mobileRifleButton">Rifle</button>
-    <button id="mobileShotgunButton">Shotgun</button>
+    <button type="button" id="mobilePistolButton">Pistola</button>
+    <button type="button" id="mobileRifleButton">Rifle</button>
+    <button type="button" id="mobileShotgunButton">Shotgun</button>
   </div>
 </div>
     </div>

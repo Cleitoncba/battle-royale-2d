@@ -76,9 +76,15 @@ const weaponText = document.getElementById("weaponText");
 const killsText = document.getElementById("killsText");
 const botsText = document.getElementById("botsText");
 const zoneText = document.getElementById("zoneText");
+const mapText = document.getElementById("mapText");
 const difficultyText = document.getElementById("difficultyText");
 const medkitsText = document.getElementById("medkitsText");
 const shieldText = document.getElementById("shieldText");
+
+const shopCoinsText = document.getElementById("shopCoinsText");
+const shopGemsText = document.getElementById("shopGemsText");
+const shopCategoryButtons = document.querySelectorAll(".shop-category-button");
+const shopItemsGrid = document.getElementById("shopItemsGrid");
 
 const endTitle = document.getElementById("endTitle");
 const endMessage = document.getElementById("endMessage");
@@ -97,6 +103,12 @@ const skinStatusGold = document.getElementById("skinStatusGold");
 const difficultyButtons = document.querySelectorAll(".difficulty-button");
 const difficultyDescription = document.getElementById("difficultyDescription");
 
+const mapButtons = document.querySelectorAll(".map-button");
+const mapDescription = document.getElementById("mapDescription");
+
+const modeButtons = document.querySelectorAll(".mode-button");
+const modeDescription = document.getElementById("modeDescription");
+
 const mobileShootButton = document.getElementById("mobileShootButton");
 const mobileReloadButton = document.getElementById("mobileReloadButton");
 const mobileHealButton = document.getElementById("mobileHealButton");
@@ -107,14 +119,24 @@ const joystickArea = document.getElementById("joystickArea");
 const joystickBase = document.getElementById("joystickBase");
 const joystickStick = document.getElementById("joystickStick");
 
+const gameModeText = document.getElementById("gameModeText");
+
 // Tamanho do mundo do jogo
 const WORLD_WIDTH = 2400;
 const WORLD_HEIGHT = 1600;
+const MOBILE_BREAKPOINT = 900;
+const MAX_CANVAS_DPR = 2;
 
 // Estado geral do jogo
 let gameRunning = false;
 let gamePaused = false;
 let animationId = null;
+
+// Chave usada para salvar o mapa escolhido.
+const MAP_STORAGE_KEY = "battleRoyale2dSelectedMap";
+
+// Opção especial para sortear mapa automaticamente.
+const RANDOM_MAP_ID = "random";
 
 // Teclas pressionadas
 const keys = {
@@ -123,6 +145,185 @@ const keys = {
   s: false,
   d: false,
 };
+// =============================
+// SISTEMA DE MAPAS / CENÁRIOS
+// =============================
+
+// Mapa padrão usado se algo der errado.
+const DEFAULT_MAP_ID = "forest";
+
+// Guarda o mapa atual da partida.
+let currentMap = null;
+
+// Lista de mapas disponíveis.
+const MAPS = {
+  forest: {
+    id: "forest",
+    name: "Floresta",
+    icon: "🌲",
+    tag: "Equilibrado",
+    description: "Mapa equilibrado com árvores, pedras, casas e vegetação.",
+    visualDescription: "Muitas árvores, vegetação e obstáculos médios.",
+
+    groundColor: "#14532d",
+    groundVariationColor: "rgba(22, 101, 52, 0.35)",
+    gridColor: "rgba(255, 255, 255, 0.025)",
+
+    treeCount: 35,
+    rockCount: 25,
+    houseCount: 10,
+    grassCount: 180,
+    bushCount: 45,
+
+    safeZoneColor: "#38bdf8",
+    darknessColor: "rgba(15, 23, 42, 0.36)",
+
+    previewGradient: "linear-gradient(135deg, #14532d, #22c55e)",
+  },
+
+  desert: {
+    id: "desert",
+    name: "Deserto",
+    icon: "🏜️",
+    tag: "Aberto",
+    description: "Mapa mais aberto, com menos árvores e mais pedras.",
+    visualDescription: "Pouca cobertura, mais espaço aberto e combate direto.",
+
+    groundColor: "#b7791f",
+    groundVariationColor: "rgba(180, 83, 9, 0.28)",
+    gridColor: "rgba(255, 255, 255, 0.035)",
+
+    treeCount: 10,
+    rockCount: 42,
+    houseCount: 7,
+    grassCount: 70,
+    bushCount: 18,
+
+    safeZoneColor: "#38bdf8",
+    darknessColor: "rgba(69, 26, 3, 0.32)",
+
+    previewGradient: "linear-gradient(135deg, #92400e, #f59e0b)",
+  },
+
+  snow: {
+    id: "snow",
+    name: "Neve",
+    icon: "❄️",
+    tag: "Visual claro",
+    description: "Mapa claro, com pedras frias e menos vegetação.",
+    visualDescription: "Ambiente claro, boa visibilidade e obstáculos espalhados.",
+
+    groundColor: "#dbeafe",
+    groundVariationColor: "rgba(147, 197, 253, 0.22)",
+    gridColor: "rgba(15, 23, 42, 0.035)",
+
+    treeCount: 22,
+    rockCount: 32,
+    houseCount: 8,
+    grassCount: 90,
+    bushCount: 24,
+
+    safeZoneColor: "#0ea5e9",
+    darknessColor: "rgba(15, 23, 42, 0.26)",
+
+    previewGradient: "linear-gradient(135deg, #bfdbfe, #f8fafc)",
+  },
+
+  city: {
+    id: "city",
+    name: "Cidade",
+    icon: "🏙️",
+    tag: "Mais casas",
+    description: "Mapa urbano com mais construções e combates próximos.",
+    visualDescription: "Mais casas, corredores apertados e menos natureza.",
+
+    groundColor: "#334155",
+    groundVariationColor: "rgba(100, 116, 139, 0.28)",
+    gridColor: "rgba(255, 255, 255, 0.04)",
+
+    treeCount: 8,
+    rockCount: 18,
+    houseCount: 22,
+    grassCount: 45,
+    bushCount: 12,
+
+    safeZoneColor: "#facc15",
+    darknessColor: "rgba(2, 6, 23, 0.42)",
+
+    previewGradient: "linear-gradient(135deg, #1e293b, #64748b)",
+  },
+
+  swamp: {
+    id: "swamp",
+    name: "Pântano",
+    icon: "🐊",
+    tag: "Fechado",
+    description: "Mapa com vegetação densa, muitos arbustos e visão mais confusa.",
+    visualDescription: "Mais vegetação, mais esconderijos e combate imprevisível.",
+
+    groundColor: "#365314",
+    groundVariationColor: "rgba(63, 98, 18, 0.38)",
+    gridColor: "rgba(255, 255, 255, 0.02)",
+
+    treeCount: 48,
+    rockCount: 16,
+    houseCount: 4,
+    grassCount: 260,
+    bushCount: 90,  
+
+    safeZoneColor: "#84cc16",
+    darknessColor: "rgba(20, 83, 45, 0.38)",
+
+    previewGradient: "linear-gradient(135deg, #365314, #84cc16)",
+  },
+
+  arena: {
+    id: "arena",
+    name: "Arena",
+    icon: "⚔️",
+    tag: "Intenso",
+    description: "Mapa menor visualmente aberto, feito para partidas rápidas.",
+    visualDescription: "Menos obstáculos, combate mais rápido e direto.",
+
+    groundColor: "#581c87",
+    groundVariationColor: "rgba(126, 34, 206, 0.28)",
+    gridColor: "rgba(255, 255, 255, 0.05)",
+
+    treeCount: 2,
+    rockCount: 14,
+    houseCount: 4,
+    grassCount: 35,
+    bushCount: 6,
+
+    safeZoneColor: "#fb7185",
+    darknessColor: "rgba(30, 27, 75, 0.42)",
+
+    previewGradient: "linear-gradient(135deg, #581c87, #fb7185)",
+  },
+};
+// Retorna o ID do mapa escolhido no menu.
+// Pode ser: "random", "forest", "desert" ou "snow".
+function getSelectedMapId() {
+  return localStorage.getItem(MAP_STORAGE_KEY) || RANDOM_MAP_ID;
+}
+
+// Salva o mapa escolhido pelo jogador.
+function saveSelectedMapId(mapId) {
+  if (mapId !== RANDOM_MAP_ID && !MAPS[mapId]) return;
+
+  localStorage.setItem(MAP_STORAGE_KEY, mapId);
+}
+
+// Retorna o texto do mapa escolhido no menu.
+function getSelectedMapLabel() {
+  const selectedMapId = getSelectedMapId();
+
+  if (selectedMapId === RANDOM_MAP_ID) {
+    return "Aleatório";
+  }
+
+  return MAPS[selectedMapId]?.name || "Aleatório";
+}
 // =============================
 // ESTATÍSTICAS DA PARTIDA ATUAL
 // =============================
@@ -203,6 +404,7 @@ let bullets = [];
 let obstacles = [];
 let loots = [];
 let decorations = [];
+let eliminationEffects = [];
 
 // ===============================
 // SISTEMA DE ÁUDIO SIMPLES
@@ -410,6 +612,65 @@ const COINS_STORAGE_KEY = "battleRoyale2dCoins";
 const SKINS_STORAGE_KEY = "battleRoyale2dOwnedSkins";
 const EQUIPPED_SKIN_STORAGE_KEY = "battleRoyale2dEquippedSkin";
 
+// =============================
+// SISTEMA DE MODOS DE PARTIDA
+// =============================
+
+const DEFAULT_GAME_MODE_ID = "classic";
+const GAME_MODE_STORAGE_KEY = "battleRoyale2dSelectedGameMode";
+
+let currentGameMode = null;
+
+const GAME_MODES = {
+  classic: {
+    id: "classic",
+    name: "Clássico",
+    description: "Experiência padrão e equilibrada.",
+    playerHealthMultiplier: 1,
+    startMedkitsBonus: 0,
+    lootMultiplier: 1,
+    zoneShrinkMultiplier: 1,
+    zoneDamageMultiplier: 1,
+    botDamageMultiplier: 1,
+  },
+
+  fast: {
+    id: "fast",
+    name: "Rápido",
+    description: "Zona fecha mais rápido e a partida fica mais intensa.",
+    playerHealthMultiplier: 1,
+    startMedkitsBonus: 0,
+    lootMultiplier: 0.85,
+    zoneShrinkMultiplier: 2.1,
+    zoneDamageMultiplier: 1.1,
+    botDamageMultiplier: 1,
+  },
+
+  hardcore: {
+    id: "hardcore",
+    name: "Hardcore",
+    description: "Menos vida, menos cura e mais punição fora da zona.",
+    playerHealthMultiplier: 0.7,
+    startMedkitsBonus: -1,
+    lootMultiplier: 0.75,
+    zoneShrinkMultiplier: 1.25,
+    zoneDamageMultiplier: 1.8,
+    botDamageMultiplier: 1.35,
+  },
+
+  highLoot: {
+    id: "highLoot",
+    name: "Loot Alto",
+    description: "Mais itens no mapa e mais chance de armas e escudo.",
+    playerHealthMultiplier: 1,
+    startMedkitsBonus: 1,
+    lootMultiplier: 1.7,
+    zoneShrinkMultiplier: 1,
+    zoneDamageMultiplier: 0.95,
+    botDamageMultiplier: 1,
+  },
+};
+
 const SKINS = {
   blue: {
     id: "blue",
@@ -439,35 +700,107 @@ const SKINS = {
     color: "#facc15",
   },
 };
+// Retorna o ID do modo escolhido no menu.
+function getSelectedGameModeId() {
+  return localStorage.getItem(GAME_MODE_STORAGE_KEY) || DEFAULT_GAME_MODE_ID;
+}
 
-// Ajusta o canvas ao tamanho da tela
+// Salva o modo escolhido.
+function saveSelectedGameModeId(modeId) {
+  if (!GAME_MODES[modeId]) return;
+
+  localStorage.setItem(GAME_MODE_STORAGE_KEY, modeId);
+}
+
+// Define o modo atual da partida.
+function applySelectedGameMode() {
+  const selectedModeId = getSelectedGameModeId();
+
+  currentGameMode = GAME_MODES[selectedModeId] || GAME_MODES[DEFAULT_GAME_MODE_ID];
+
+  return currentGameMode;
+}
+
+// Retorna o modo atual com segurança.
+function getCurrentGameMode() {
+  return currentGameMode || GAME_MODES[DEFAULT_GAME_MODE_ID];
+}
+// Sorteia um mapa para a partida.
+// Escolhe o mapa da partida com base na escolha do menu.
+// Se o jogador escolheu "Aleatório", sorteia um dos mapas.
+function chooseMatchMap() {
+  const selectedMapId = getSelectedMapId();
+
+  if (selectedMapId !== RANDOM_MAP_ID && MAPS[selectedMapId]) {
+    currentMap = MAPS[selectedMapId];
+    return currentMap;
+  }
+
+  const mapIds = Object.keys(MAPS);
+  const randomIndex = Math.floor(Math.random() * mapIds.length);
+  const randomMapId = mapIds[randomIndex];
+
+  currentMap = MAPS[randomMapId] || MAPS[DEFAULT_MAP_ID];
+
+  return currentMap;
+}
+function getViewportWidth() {
+  return Math.round(window.visualViewport?.width || window.innerWidth);
+}
+
+function getViewportHeight() {
+  return Math.round(window.visualViewport?.height || window.innerHeight);
+}
+
+function isMobileLayout() {
+  return getViewportWidth() <= MOBILE_BREAKPOINT;
+}
+
+function resetMobileInputState() {
+  resetJoystick();
+  mobileAim.active = false;
+  mobileAim.pointerId = null;
+}
+
+// Ajusta o canvas ao tamanho visível da tela e mantém nitidez em telas de alta densidade.
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const viewportWidth = getViewportWidth();
+  const viewportHeight = getViewportHeight();
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_CANVAS_DPR);
+
+  canvas.style.width = `${viewportWidth}px`;
+  canvas.style.height = `${viewportHeight}px`;
+  canvas.width = Math.round(viewportWidth * pixelRatio);
+  canvas.height = Math.round(viewportHeight * pixelRatio);
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
   if (!miniMapCanvas) return;
 
-  if (window.innerWidth <= 900) {
-    miniMapCanvas.width = 118;
-    miniMapCanvas.height = 78;
+  const miniMapCssWidth = isMobileLayout() ? 92 : 190;
+  const miniMapCssHeight = isMobileLayout() ? 60 : 130;
 
-    miniMapCanvas.style.width = "118px";
-    miniMapCanvas.style.height = "78px";
-    miniMapCanvas.style.top = "84px";
-    miniMapCanvas.style.right = "8px";
-  } else {
-    miniMapCanvas.width = 190;
-    miniMapCanvas.height = 130;
+  miniMapCanvas.width = Math.round(miniMapCssWidth * pixelRatio);
+  miniMapCanvas.height = Math.round(miniMapCssHeight * pixelRatio);
+  miniMapCtx?.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
-    miniMapCanvas.style.width = "190px";
-    miniMapCanvas.style.height = "130px";
-    miniMapCanvas.style.top = "86px";
-    miniMapCanvas.style.right = "18px";
+  miniMapCanvas.style.width = `${miniMapCssWidth}px`;
+  miniMapCanvas.style.height = `${miniMapCssHeight}px`;
+  miniMapCanvas.style.top = isMobileLayout() ? "64px" : "86px";
+  miniMapCanvas.style.right = isMobileLayout() ? "6px" : "18px";
+
+  if (player) {
+    updateCamera();
   }
 }
 setupMiniMap();
 
 window.addEventListener("resize", resizeCanvas);
+window.visualViewport?.addEventListener("resize", resizeCanvas);
+window.visualViewport?.addEventListener("scroll", resizeCanvas);
+window.addEventListener("orientationchange", () => {
+  resetMobileInputState();
+  setTimeout(resizeCanvas, 120);
+});
 resizeCanvas();
 
 // Retorna o ID da dificuldade salva.
@@ -505,12 +838,84 @@ function updateDifficultyUI() {
     difficultyText.textContent = selectedDifficulty.name;
   }
 }
+// Atualiza o visual dos botões de mapa no menu.
+function updateMapUI() {
+  const selectedMapId = getSelectedMapId();
 
+  mapButtons.forEach((button) => {
+    const buttonMapId = button.dataset.map;
+    const isActive = buttonMapId === selectedMapId;
+
+    button.classList.toggle("active", isActive);
+
+    // Cria visual automático dentro do botão.
+    if (buttonMapId === RANDOM_MAP_ID) {
+      button.innerHTML = `
+        <span class="map-card-preview random-preview">🎲</span>
+
+        <span class="map-card-content">
+          <strong>Aleatório</strong>
+          <small>Mapa sorteado a cada partida</small>
+          <em>Surpresa</em>
+        </span>
+      `;
+      return;
+    }
+
+    const map = MAPS[buttonMapId];
+
+    if (!map) return;
+
+    button.innerHTML = `
+      <span 
+        class="map-card-preview"
+        style="background: ${map.previewGradient};"
+      >
+        ${map.icon}
+      </span>
+
+      <span class="map-card-content">
+        <strong>${map.name}</strong>
+        <small>${map.visualDescription}</small>
+        <em>${map.tag}</em>
+      </span>
+    `;
+  });
+
+  if (!mapDescription) return;
+
+  if (selectedMapId === RANDOM_MAP_ID) {
+    mapDescription.textContent =
+      "Aleatório: o mapa será sorteado a cada partida.";
+    return;
+  }
+
+  const selectedMap = MAPS[selectedMapId] || MAPS[DEFAULT_MAP_ID];
+
+  mapDescription.textContent =
+    `${selectedMap.icon} ${selectedMap.name}: ${selectedMap.description}`;
+}
+// Atualiza o visual dos botões de modo de partida.
+function updateGameModeUI() {
+  const selectedModeId = getSelectedGameModeId();
+
+  modeButtons.forEach((button) => {
+    const isActive = button.dataset.mode === selectedModeId;
+    button.classList.toggle("active", isActive);
+  });
+
+  if (!modeDescription) return;
+
+  const selectedMode = GAME_MODES[selectedModeId] || GAME_MODES[DEFAULT_GAME_MODE_ID];
+
+  modeDescription.textContent = `${selectedMode.name}: ${selectedMode.description}`;
+}
 // Aplica configurações da dificuldade na partida atual.
 function applyDifficultySettings() {
   const selectedDifficulty = getSelectedDifficulty();
+  const mode = getCurrentGameMode();
 
-  BOT_BULLET_DAMAGE = selectedDifficulty.botDamage;
+BOT_BULLET_DAMAGE = selectedDifficulty.botDamage * mode.botDamageMultiplier;
 }
 // =============================
 // SISTEMA DE CONQUISTAS
@@ -611,13 +1016,18 @@ function addMatchToRanking(victory, matchCoins) {
 
   const ranking = getLocalRanking();
 
-  ranking.push({
-    kills,
-    coins: matchCoins,
-    victory,
-    difficulty: selectedDifficulty.name,
-    date: new Date().toLocaleDateString("pt-BR"),
-  });
+  const map = currentMap || MAPS[DEFAULT_MAP_ID];
+const mode = getCurrentGameMode();
+
+ranking.push({
+  kills,
+  coins: matchCoins,
+  victory,
+  difficulty: selectedDifficulty.name,
+  map: map.name,
+  mode: mode.name,
+  date: new Date().toLocaleDateString("pt-BR"),
+});
 
   ranking.sort((a, b) => {
     if (b.victory !== a.victory) {
@@ -658,7 +1068,7 @@ function updateRankingUI() {
           <div class="ranking-info">
             <strong>${result} — ${item.kills} kills</strong>
             <small>
-              ${item.coins} coins • ${item.difficulty} • ${item.date}
+              ${item.coins} coins • ${item.difficulty} • ${item.mode || "Clássico"} • ${item.map || "Mapa"} • ${item.date}
             </small>
           </div>
         </div>
@@ -714,31 +1124,278 @@ function getEquippedSkinColor() {
   const skinId = getEquippedSkinId();
   return SKINS[skinId]?.color || SKINS.blue.color;
 }
+// =============================
+// ETAPA 23 - LOJA AVANÇADA
+// =============================
 
+const SHOP_OWNED_ITEMS_KEY = "battleRoyale2dOwnedShopItems";
+const SHOP_EQUIPPED_ITEMS_KEY = "battleRoyale2dEquippedShopItems";
+const GEMS_STORAGE_KEY = "battleRoyale2dGems";
+
+// Categoria aberta na loja.
+let currentShopCategory = "character";
+
+const SHOP_ITEMS = {
+  character_blue: {
+    id: "character_blue",
+    category: "character",
+    name: "Azul",
+    description: "Visual inicial do personagem.",
+    currency: "coins",
+    price: 0,
+    previewType: "color",
+    preview: "#38bdf8",
+    value: "#38bdf8",
+  },
+
+  character_green: {
+    id: "character_green",
+    category: "character",
+    name: "Verde",
+    description: "Visual verde para o personagem.",
+    currency: "coins",
+    price: 100,
+    previewType: "color",
+    preview: "#22c55e",
+    value: "#22c55e",
+  },
+
+  character_purple: {
+    id: "character_purple",
+    category: "character",
+    name: "Roxa",
+    description: "Visual roxo para o personagem.",
+    currency: "coins",
+    price: 250,
+    previewType: "color",
+    preview: "#a855f7",
+    value: "#a855f7",
+  },
+
+  character_gold: {
+    id: "character_gold",
+    category: "character",
+    name: "Dourada",
+    description: "Visual dourado para destacar seu personagem.",
+    currency: "coins",
+    price: 500,
+    previewType: "color",
+    preview: "#facc15",
+    value: "#facc15",
+  },
+
+  weapon_yellow: {
+    id: "weapon_yellow",
+    category: "weapon",
+    name: "Tiro Amarelo",
+    description: "Cor padrão dos tiros.",
+    currency: "coins",
+    price: 0,
+    previewType: "bullet",
+    preview: "#facc15",
+    value: "#facc15",
+  },
+
+  weapon_blue: {
+    id: "weapon_blue",
+    category: "weapon",
+    name: "Tiro Azul",
+    description: "Balas com visual azul.",
+    currency: "coins",
+    price: 120,
+    previewType: "bullet",
+    preview: "#38bdf8",
+    value: "#38bdf8",
+  },
+
+  weapon_green: {
+    id: "weapon_green",
+    category: "weapon",
+    name: "Tiro Verde",
+    description: "Balas com visual verde.",
+    currency: "coins",
+    price: 180,
+    previewType: "bullet",
+    preview: "#22c55e",
+    value: "#22c55e",
+  },
+
+  weapon_pink: {
+    id: "weapon_pink",
+    category: "weapon",
+    name: "Tiro Rosa",
+    description: "Balas com visual rosa vibrante.",
+    currency: "coins",
+    price: 220,
+    previewType: "bullet",
+    preview: "#fb7185",
+    value: "#fb7185",
+  },
+
+  effect_simple: {
+    id: "effect_simple",
+    category: "effect",
+    name: "Simples",
+    description: "Efeito básico de eliminação.",
+    currency: "coins",
+    price: 0,
+    previewType: "emoji",
+    preview: "✨",
+    value: "simple",
+  },
+
+  effect_green_burst: {
+    id: "effect_green_burst",
+    category: "effect",
+    name: "Brilho Verde",
+    description: "Efeito verde ao eliminar bots.",
+    currency: "coins",
+    price: 200,
+    previewType: "emoji",
+    preview: "💚",
+    value: "green_burst",
+  },
+
+  effect_gold_spark: {
+    id: "effect_gold_spark",
+    category: "effect",
+    name: "Faísca Dourada",
+    description: "Efeito dourado para eliminações.",
+    currency: "coins",
+    price: 350,
+    previewType: "emoji",
+    preview: "🌟",
+    value: "gold_spark",
+  },
+
+  effect_explosion: {
+    id: "effect_explosion",
+    category: "effect",
+    name: "Explosão",
+    description: "Efeito explosivo visual ao eliminar.",
+    currency: "coins",
+    price: 500,
+    previewType: "emoji",
+    preview: "💥",
+    value: "explosion",
+  },
+};
+function getTotalGems() {
+  const savedGems = localStorage.getItem(GEMS_STORAGE_KEY);
+  return savedGems ? Number(savedGems) : 0;
+}
+
+function saveTotalGems(amount) {
+  localStorage.setItem(GEMS_STORAGE_KEY, String(Math.max(0, amount)));
+}
+
+function getOwnedShopItems() {
+  const savedItems = localStorage.getItem(SHOP_OWNED_ITEMS_KEY);
+
+  const defaultOwned = {
+    character_blue: true,
+    weapon_yellow: true,
+    effect_simple: true,
+  };
+
+  if (!savedItems) {
+    return defaultOwned;
+  }
+
+  try {
+    return {
+      ...defaultOwned,
+      ...JSON.parse(savedItems),
+    };
+  } catch {
+    return defaultOwned;
+  }
+}
+
+function saveOwnedShopItems(ownedItems) {
+  localStorage.setItem(SHOP_OWNED_ITEMS_KEY, JSON.stringify(ownedItems));
+}
+
+function getEquippedShopItems() {
+  const savedItems = localStorage.getItem(SHOP_EQUIPPED_ITEMS_KEY);
+
+  const defaultEquipped = {
+    character: "character_blue",
+    weapon: "weapon_yellow",
+    effect: "effect_simple",
+  };
+
+  if (!savedItems) {
+    return defaultEquipped;
+  }
+
+  try {
+    return {
+      ...defaultEquipped,
+      ...JSON.parse(savedItems),
+    };
+  } catch {
+    return defaultEquipped;
+  }
+}
+
+function saveEquippedShopItems(equippedItems) {
+  localStorage.setItem(SHOP_EQUIPPED_ITEMS_KEY, JSON.stringify(equippedItems));
+}
+function getEquippedCharacterColor() {
+  const equipped = getEquippedShopItems();
+  const item = SHOP_ITEMS[equipped.character];
+
+  return item?.value || "#38bdf8";
+}
+
+function getEquippedBulletColor() {
+  const equipped = getEquippedShopItems();
+  const item = SHOP_ITEMS[equipped.weapon];
+
+  return item?.value || "#facc15";
+}
+
+function getEquippedEliminationEffect() {
+  const equipped = getEquippedShopItems();
+  const item = SHOP_ITEMS[equipped.effect];
+
+  return item?.value || "simple";
+}
 // Atualiza textos dos cards da loja.
 function updateShopUI() {
   const ownedSkins = getOwnedSkins();
   const equippedSkinId = getEquippedSkinId();
 
-  skinStatusBlue.textContent = equippedSkinId === "blue" ? "Equipada" : "Equipar";
+  if (skinStatusBlue) {
+    skinStatusBlue.textContent = equippedSkinId === "blue" ? "Equipada" : "Equipar";
+  }
 
-  skinStatusGreen.textContent = ownedSkins.green
-    ? equippedSkinId === "green"
-      ? "Equipada"
-      : "Equipar"
-    : "Comprar";
+  if (skinStatusGreen) {
+    skinStatusGreen.textContent = ownedSkins.green
+      ? equippedSkinId === "green"
+        ? "Equipada"
+        : "Equipar"
+      : "Comprar";
+  }
 
-  skinStatusPurple.textContent = ownedSkins.purple
-    ? equippedSkinId === "purple"
-      ? "Equipada"
-      : "Equipar"
-    : "Comprar";
+  if (skinStatusPurple) {
+    skinStatusPurple.textContent = ownedSkins.purple
+      ? equippedSkinId === "purple"
+        ? "Equipada"
+        : "Equipar"
+      : "Comprar";
+  }
 
-  skinStatusGold.textContent = ownedSkins.gold
-    ? equippedSkinId === "gold"
-      ? "Equipada"
-      : "Equipar"
-    : "Comprar";
+  if (skinStatusGold) {
+    skinStatusGold.textContent = ownedSkins.gold
+      ? equippedSkinId === "gold"
+        ? "Equipada"
+        : "Equipar"
+      : "Comprar";
+  }
+
+  renderAdvancedShop();
 }
 
 // Mostra mensagem temporária na loja.
@@ -1160,12 +1817,18 @@ function pushEntityOutOfObstacles(entity) {
 }
 // Cria o jogador
 function createPlayer() {
+  const mode = getCurrentGameMode();
+
+  const modeHealth = Math.floor(PLAYER_MAX_HEALTH * mode.playerHealthMultiplier);
+  const modeMedkits = Math.max(0, START_MEDKITS + mode.startMedkitsBonus);
+
   return {
     x: WORLD_WIDTH / 2,
     y: WORLD_HEIGHT / 2,
     radius: 18,
     speed: 2.6,
-    health: PLAYER_MAX_HEALTH,
+    health: modeHealth,
+    maxHealth: modeHealth,
     currentWeapon: "pistol",
 
 weaponsOwned: {
@@ -1181,14 +1844,14 @@ ammoByWeapon: {
 },
 
 maxAmmo: WEAPONS.pistol.maxAmmo,
-    medkits: START_MEDKITS,
+    medkits: modeMedkits,
     healing: false,
     shield: START_SHIELD,
     reloadTime: 900,
     reloading: false,
     lastShot: 0,
     fireRate: 320,
-    color: getEquippedSkinColor(),
+    color: getEquippedCharacterColor(),
 
     // Ângulo oficial da mira/arma.
     // 0 significa apontando para a direita.
@@ -1256,9 +1919,24 @@ function createBots() {
 function createLoots() {
   loots = [];
 
-  const lootTypes = ["medkit", "ammo", "shield", "rifle", "shotgun"];
+  let lootTypes = ["medkit", "ammo", "shield", "rifle", "shotgun"];
 
-  for (let i = 0; i < LOOT_COUNT; i++) {
+if (getCurrentGameMode().id === "highLoot") {
+  lootTypes = [
+    "medkit",
+    "ammo",
+    "ammo",
+    "shield",
+    "shield",
+    "rifle",
+    "shotgun",
+  ];
+}
+  const mode = getCurrentGameMode();
+
+  const totalLoots = Math.floor(LOOT_COUNT * mode.lootMultiplier);
+
+for (let i = 0; i < totalLoots; i++) {
     const type = lootTypes[Math.floor(Math.random() * lootTypes.length)];
 
     let lootX = WORLD_WIDTH / 2;
@@ -1292,8 +1970,10 @@ function createLoots() {
 function createDecorations() {
   decorations = [];
 
-  // Gramas pequenas espalhadas pelo mapa
-  for (let i = 0; i < 180; i++) {
+  const map = currentMap || MAPS[DEFAULT_MAP_ID];
+
+  // Gramas, riscos de areia ou marcas na neve.
+  for (let i = 0; i < map.grassCount; i++) {
     decorations.push({
       type: "grass",
       x: randomBetween(20, WORLD_WIDTH - 20),
@@ -1303,8 +1983,8 @@ function createDecorations() {
     });
   }
 
-  // Arbustos pequenos
-  for (let i = 0; i < 45; i++) {
+  // Arbustos ou pequenas manchas.
+  for (let i = 0; i < map.bushCount; i++) {
     decorations.push({
       type: "bush",
       x: randomBetween(40, WORLD_WIDTH - 40),
@@ -1313,74 +1993,389 @@ function createDecorations() {
     });
   }
 }
+
+// Verifica se uma nova posição de obstáculo está livre.
+// Isso evita obstáculos muito grudados ou sobrepostos.
+function isObstaclePlacementFree(newObstacle, minDistance = 70) {
+  // Evita bloquear a região inicial do jogador.
+  const playerSpawnX = WORLD_WIDTH / 2;
+  const playerSpawnY = WORLD_HEIGHT / 2;
+
+  const obstacleCenterX =
+    newObstacle.type === "house"
+      ? newObstacle.x + newObstacle.width / 2
+      : newObstacle.x;
+
+  const obstacleCenterY =
+    newObstacle.type === "house"
+      ? newObstacle.y + newObstacle.height / 2
+      : newObstacle.y;
+
+  const distanceFromPlayerSpawn = Math.hypot(
+    obstacleCenterX - playerSpawnX,
+    obstacleCenterY - playerSpawnY
+  );
+
+  if (distanceFromPlayerSpawn < 260) {
+    return false;
+  }
+
+  // Evita obstáculos muito próximos uns dos outros.
+  return !obstacles.some((existingObstacle) => {
+    const existingCenterX =
+      existingObstacle.type === "house"
+        ? existingObstacle.x + existingObstacle.width / 2
+        : existingObstacle.x;
+
+    const existingCenterY =
+      existingObstacle.type === "house"
+        ? existingObstacle.y + existingObstacle.height / 2
+        : existingObstacle.y;
+
+    const newRadius =
+      newObstacle.type === "house"
+        ? Math.max(newObstacle.width, newObstacle.height) / 2
+        : newObstacle.radius || 30;
+
+    const existingRadius =
+      existingObstacle.type === "house"
+        ? Math.max(existingObstacle.width, existingObstacle.height) / 2
+        : existingObstacle.radius || 30;
+
+    const distanceBetween = Math.hypot(
+      obstacleCenterX - existingCenterX,
+      obstacleCenterY - existingCenterY
+    );
+
+    return distanceBetween < newRadius + existingRadius + minDistance;
+  });
+}
+
+// Tenta adicionar um obstáculo várias vezes até achar uma posição boa.
+// Retorna true se conseguiu adicionar, false se não conseguiu.
+function addObstacleWithSpacing(createObstacleFn, attempts = 80, minDistance = 70) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const obstacle = createObstacleFn();
+
+    if (isObstaclePlacementFree(obstacle, minDistance)) {
+      obstacles.push(obstacle);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Cria obstáculos reais do mapa.
 // Esses elementos bloqueiam tiros e serão usados como árvores, pedras e casas.
+// Cria obstáculos reais do mapa.
+// Esses elementos bloqueiam tiros, jogador e bots.
 function createObstacles() {
   obstacles = [];
 
+  const map = currentMap || MAPS[DEFAULT_MAP_ID];
+
+  // Distância mínima entre obstáculos.
+  // Cada mapa tem uma sensação diferente.
+  let spacing = 72;
+
+  if (map.id === "desert") spacing = 92;
+  if (map.id === "snow") spacing = 82;
+  if (map.id === "city") spacing = 54;
+  if (map.id === "swamp") spacing = 46;
+  if (map.id === "arena") spacing = 120;
+
+  // =========================
+  // CIDADE
+  // Casas mais alinhadas, simulando quadras.
+  // =========================
+  if (map.id === "city") {
+    createCityObstacles(map);
+    return;
+  }
+
+  // =========================
+  // ARENA
+  // Mapa mais aberto, com obstáculos nas bordas e alguns no centro.
+  // =========================
+  if (map.id === "arena") {
+    createArenaObstacles(map);
+    return;
+  }
+
+  // =========================
+  // MAPAS NATURAIS
+  // Floresta, Deserto, Neve e Pântano.
+  // =========================
+
   // Árvores
-  for (let i = 0; i < 35; i++) {
-    obstacles.push({
-      type: "tree",
-      x: randomBetween(80, WORLD_WIDTH - 80),
-      y: randomBetween(80, WORLD_HEIGHT - 80),
-      radius: randomBetween(22, 34),
-      width: 0,
-      height: 0,
-    });
+  for (let i = 0; i < map.treeCount; i++) {
+    addObstacleWithSpacing(
+      () => ({
+        type: "tree",
+        x: randomBetween(80, WORLD_WIDTH - 80),
+        y: randomBetween(80, WORLD_HEIGHT - 80),
+        radius: randomBetween(22, 34),
+        width: 0,
+        height: 0,
+      }),
+      90,
+      spacing
+    );
   }
 
   // Pedras
-  for (let i = 0; i < 25; i++) {
-    const size = randomBetween(34, 70);
+  for (let i = 0; i < map.rockCount; i++) {
+    addObstacleWithSpacing(
+      () => {
+        const size = randomBetween(34, 70);
+
+        return {
+          type: "rock",
+          x: randomBetween(80, WORLD_WIDTH - 80),
+          y: randomBetween(80, WORLD_HEIGHT - 80),
+          radius: size / 2,
+          width: size,
+          height: size * randomBetween(0.65, 0.9),
+        };
+      },
+      90,
+      spacing
+    );
+  }
+
+  // Casas
+  for (let i = 0; i < map.houseCount; i++) {
+    addObstacleWithSpacing(
+      () => {
+        const houseWidth = randomBetween(90, 150);
+        const houseHeight = randomBetween(80, 130);
+
+        return {
+          type: "house",
+          x: randomBetween(120, WORLD_WIDTH - 220),
+          y: randomBetween(120, WORLD_HEIGHT - 220),
+          width: houseWidth,
+          height: houseHeight,
+
+          roofColor:
+            map.id === "snow" ? "#334155" :
+            map.id === "desert" ? "#92400e" :
+            map.id === "city" ? "#0f172a" :
+            map.id === "swamp" ? "#3f6212" :
+            map.id === "arena" ? "#7e22ce" :
+            "#7f1d1d",
+
+          wallColor:
+            map.id === "snow" ? "#94a3b8" :
+            map.id === "desert" ? "#78350f" :
+            map.id === "city" ? "#475569" :
+            map.id === "swamp" ? "#365314" :
+            map.id === "arena" ? "#581c87" :
+            "#78350f",
+        };
+      },
+      100,
+      spacing + 35
+    );
+  }
+}
+
+// Cria obstáculos específicos do mapa Cidade.
+// A ideia é deixar as casas mais parecidas com quadras urbanas.
+// Cria obstáculos específicos do mapa Cidade.
+// A ideia é deixar as casas dentro das quadras, sem ficar em cima das ruas.
+function createCityObstacles(map) {
+  // Posições das casas pensadas para ficar ENTRE as ruas.
+  // As ruas são desenhadas em faixas verticais e horizontais,
+  // então esses pontos evitam sobreposição com elas.
+  const cityBlocks = [
+    // Linha superior de quadras
+    { x: 110, y: 90 },
+    { x: 410, y: 90 },
+    { x: 830, y: 90 },
+    { x: 1250, y: 90 },
+    { x: 1670, y: 90 },
+    { x: 2100, y: 90 },
+
+    // Segunda linha de quadras
+    { x: 110, y: 370 },
+    { x: 410, y: 370 },
+    { x: 830, y: 370 },
+    { x: 1250, y: 370 },
+    { x: 1670, y: 370 },
+    { x: 2100, y: 370 },
+
+    // Terceira linha de quadras
+    { x: 110, y: 730 },
+    { x: 410, y: 730 },
+    { x: 830, y: 730 },
+    { x: 1250, y: 730 },
+    { x: 1670, y: 730 },
+    { x: 2100, y: 730 },
+
+    // Quarta linha de quadras
+    { x: 110, y: 1090 },
+    { x: 410, y: 1090 },
+    { x: 830, y: 1090 },
+    { x: 1250, y: 1090 },
+    { x: 1670, y: 1090 },
+    { x: 2100, y: 1090 },
+
+    // Linha inferior
+    { x: 110, y: 1410 },
+    { x: 410, y: 1410 },
+    { x: 830, y: 1410 },
+    { x: 1250, y: 1410 },
+    { x: 1670, y: 1410 },
+    { x: 2100, y: 1410 },
+  ];
+
+  cityBlocks.forEach((block) => {
+    // Evita bloquear o centro inicial do jogador.
+    const distFromCenter = Math.hypot(
+      block.x - WORLD_WIDTH / 2,
+      block.y - WORLD_HEIGHT / 2
+    );
+
+    if (distFromCenter < 330) return;
+
+    const houseWidth = randomBetween(95, 135);
+    const houseHeight = randomBetween(80, 110);
+
+    obstacles.push({
+      type: "house",
+      x: block.x,
+      y: block.y,
+      width: houseWidth,
+      height: houseHeight,
+      roofColor: "#0f172a",
+      wallColor: "#475569",
+    });
+  });
+
+  // Concretos/pedras urbanas espalhados, mas com espaçamento.
+  for (let i = 0; i < map.rockCount; i++) {
+    addObstacleWithSpacing(
+      () => {
+        const size = randomBetween(30, 54);
+
+        return {
+          type: "rock",
+          x: randomBetween(100, WORLD_WIDTH - 100),
+          y: randomBetween(100, WORLD_HEIGHT - 100),
+          radius: size / 2,
+          width: size,
+          height: size * randomBetween(0.65, 0.9),
+        };
+      },
+      80,
+      90
+    );
+  }
+
+  // Poucas árvores urbanas, mais nas bordas e espaços abertos.
+  for (let i = 0; i < map.treeCount; i++) {
+    addObstacleWithSpacing(
+      () => ({
+        type: "tree",
+        x: randomBetween(100, WORLD_WIDTH - 100),
+        y: randomBetween(100, WORLD_HEIGHT - 100),
+        radius: randomBetween(18, 25),
+        width: 0,
+        height: 0,
+      }),
+      80,
+      105
+    );
+  }
+}
+
+// Cria obstáculos específicos do mapa Arena.
+// A ideia é manter o centro jogável, com obstáculos mais estratégicos.
+function createArenaObstacles(map) {
+  const centerX = WORLD_WIDTH / 2;
+  const centerY = WORLD_HEIGHT / 2;
+
+  // Obstáculos em volta da arena.
+  const arenaRocks = [
+    { x: centerX - 520, y: centerY - 300 },
+    { x: centerX + 520, y: centerY - 300 },
+    { x: centerX - 520, y: centerY + 300 },
+    { x: centerX + 520, y: centerY + 300 },
+
+    { x: centerX, y: centerY - 420 },
+    { x: centerX, y: centerY + 420 },
+    { x: centerX - 720, y: centerY },
+    { x: centerX + 720, y: centerY },
+  ];
+
+  arenaRocks.forEach((position) => {
+    const size = randomBetween(48, 82);
 
     obstacles.push({
       type: "rock",
-      x: randomBetween(80, WORLD_WIDTH - 80),
-      y: randomBetween(80, WORLD_HEIGHT - 80),
+      x: position.x,
+      y: position.y,
       radius: size / 2,
       width: size,
       height: size * randomBetween(0.65, 0.9),
     });
-  }
+  });
 
-  // Casas simples
-  for (let i = 0; i < 10; i++) {
-    let houseX = randomBetween(120, WORLD_WIDTH - 220);
-let houseY = randomBetween(120, WORLD_HEIGHT - 220);
+  // Poucas casas pequenas nas laterais.
+  const sideHouses = [
+    { x: 220, y: 190 },
+    { x: WORLD_WIDTH - 360, y: 190 },
+    { x: 220, y: WORLD_HEIGHT - 330 },
+    { x: WORLD_WIDTH - 360, y: WORLD_HEIGHT - 330 },
+  ];
 
-// Evita casa muito próxima do spawn inicial do jogador.
-if (
-  Math.abs(houseX - WORLD_WIDTH / 2) < 250 &&
-  Math.abs(houseY - WORLD_HEIGHT / 2) < 250
-) {
-  houseX += 350;
-  houseY += 250;
-}
-
-houseX = clamp(houseX, 120, WORLD_WIDTH - 220);
-houseY = clamp(houseY, 120, WORLD_HEIGHT - 220);
-
-obstacles.push({
-  type: "house",
-  x: houseX,
-  y: houseY,
-      width: randomBetween(90, 150),
-      height: randomBetween(80, 130),
-      roofColor: "#7f1d1d",
-      wallColor: "#78350f",
+  sideHouses.forEach((house) => {
+    obstacles.push({
+      type: "house",
+      x: house.x,
+      y: house.y,
+      width: 120,
+      height: 95,
+      roofColor: "#7e22ce",
+      wallColor: "#581c87",
     });
+  });
+
+  // Alguns obstáculos extras, mas longe do centro.
+  for (let i = 0; i < 6; i++) {
+    addObstacleWithSpacing(
+      () => {
+        const angle = randomBetween(0, Math.PI * 2);
+        const distanceFromCenter = randomBetween(520, 880);
+        const size = randomBetween(34, 60);
+
+        return {
+          type: "rock",
+          x: centerX + Math.cos(angle) * distanceFromCenter,
+          y: centerY + Math.sin(angle) * distanceFromCenter,
+          radius: size / 2,
+          width: size,
+          height: size * randomBetween(0.65, 0.9),
+        };
+      },
+      80,
+      110
+    );
   }
 }
 
 // Cria a zona segura
 function createSafeZone() {
+  const mode = getCurrentGameMode();
+
   safeZone = {
     x: WORLD_WIDTH / 2,
     y: WORLD_HEIGHT / 2,
     radius: 760,
     minRadius: 150,
-    shrinkSpeed: 0.018,
+    shrinkSpeed: 0.018 * mode.zoneShrinkMultiplier,
   };
 }
 // Pausa a partida atual.
@@ -1390,6 +2385,7 @@ function pauseGame() {
   gamePaused = true;
   pauseScreen.classList.add("active");
   hideMiniMap();
+  resetMobileInputState();
 
   if (animationId) {
     cancelAnimationFrame(animationId);
@@ -1417,6 +2413,7 @@ function backToMenu() {
   }
   
   hideMiniMap();
+  resetMobileInputState();
 
   pauseScreen.classList.remove("active");
   endScreen.classList.remove("active");
@@ -1428,6 +2425,8 @@ function backToMenu() {
   updateMenuCoins();
   updateShopUI();
   updateDifficultyUI();
+  updateMapUI();
+  updateGameModeUI();
   hideMiniMap();
 }
 // Inicia uma nova partida
@@ -1440,21 +2439,27 @@ function startGame() {
   pauseScreen.classList.remove("active");
 
   showMiniMap();
+  resetMobileInputState();
+  resizeCanvas();
 
   gameRunning = true;
   gamePaused = false;
   kills = 0;
 
+  chooseMatchMap();
+  applySelectedGameMode();
   applyDifficultySettings();
 
   player = createPlayer();
+
+  createSafeZone();
   createDecorations();
   createObstacles();
   createBots();
   createLoots();
-  createSafeZone();
 
   bullets = [];
+  eliminationEffects = [];
 
   if (animationId) {
     cancelAnimationFrame(animationId);
@@ -1568,7 +2573,7 @@ function updateMouseWorldPosition() {
 function updatePlayerAimAngle() {
   if (!player) return;
 
-  const isMobile = window.innerWidth <= 900;
+  const isMobile = isMobileLayout();
 
   if (isMobile) {
     player.aimAngle = mobileAim.angle;
@@ -1617,14 +2622,14 @@ function useMedkit() {
   if (player.medkits <= 0) return;
 
   // Não gasta kit se a vida já estiver cheia.
-  if (player.health >= PLAYER_MAX_HEALTH) return;
+  if (player.health >= player.maxHealth) return;
 
   player.healing = true;
 
   setTimeout(() => {
     if (!gameRunning || !player) return;
 
-    player.health = Math.min(PLAYER_MAX_HEALTH, player.health + HEAL_AMOUNT);
+    player.health = Math.min(player.maxHealth, player.health + HEAL_AMOUNT);
     player.medkits -= 1;
     player.healing = false;
 
@@ -1732,11 +2737,190 @@ function shootBullet(owner, targetX, targetY) {
       vy: Math.sin(angle),
       owner,
       life: owner === player ? weapon.bulletLife : 90,
-      color: owner === player ? "#facc15" : "#fb7185",
+      color: owner === player ? getEquippedBulletColor() : "#fb7185",
     });
   }
 }
+//Criar renderização da loja nova
+function getShopCategoryLabel(category) {
+  if (category === "character") return "Personagem";
+  if (category === "weapon") return "Armas";
+  if (category === "effect") return "Efeitos";
+  return "Loja";
+}
 
+function renderShopPreview(item) {
+  if (item.previewType === "emoji") {
+    return `
+      <div class="shop-item-preview">
+        ${item.preview}
+      </div>
+    `;
+  }
+
+  if (item.previewType === "bullet") {
+    return `
+      <div class="shop-item-preview" style="background: rgba(15, 23, 42, 0.9);">
+        <span style="
+          display: block;
+          width: 28px;
+          height: 10px;
+          border-radius: 999px;
+          background: ${item.preview};
+          box-shadow: 0 0 14px ${item.preview};
+        "></span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="shop-item-preview" style="background: ${item.preview};"></div>
+  `;
+}
+
+//Criar compra/equipar item
+function renderAdvancedShop() {
+  if (!shopItemsGrid) return;
+
+  const ownedItems = getOwnedShopItems();
+  const equippedItems = getEquippedShopItems();
+
+  if (shopCoinsText) {
+    shopCoinsText.textContent = getTotalCoins();
+  }
+
+  if (shopGemsText) {
+    shopGemsText.textContent = getTotalGems();
+  }
+
+  shopCategoryButtons.forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.shopCategory === currentShopCategory
+    );
+  });
+
+  const items = Object.values(SHOP_ITEMS).filter((item) => {
+    return item.category === currentShopCategory;
+  });
+
+  shopItemsGrid.innerHTML = items
+    .map((item) => {
+      const owned = Boolean(ownedItems[item.id]);
+      const equipped = equippedItems[item.category] === item.id;
+
+      let buttonText = "Comprar";
+      let buttonClass = "buy";
+
+      if (equipped) {
+        buttonText = "Equipado";
+        buttonClass = "equipped";
+      } else if (owned) {
+        buttonText = "Equipar";
+        buttonClass = "";
+      }
+
+      const priceLabel =
+        item.price === 0
+          ? "Grátis"
+          : item.currency === "gems"
+            ? `💎 ${item.price} gemas`
+            : `🪙 ${item.price} coins`;
+
+      return `
+        <div class="shop-item-card ${owned ? "owned" : ""} ${equipped ? "equipped" : ""}">
+          ${renderShopPreview(item)}
+
+          <strong class="shop-item-title">${item.name}</strong>
+
+          <p class="shop-item-description">
+            ${item.description}
+          </p>
+
+          <div class="shop-item-price">
+            ${priceLabel}
+          </div>
+
+          <button
+            type="button"
+            class="shop-item-button ${buttonClass}"
+            data-shop-item="${item.id}"
+            ${equipped ? "disabled" : ""}
+          >
+            ${buttonText}
+          </button>
+        </div>
+      `;
+    })
+    .join("");
+
+  const itemButtons = shopItemsGrid.querySelectorAll("[data-shop-item]");
+
+  itemButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      handleShopItemClick(button.dataset.shopItem);
+    });
+  });
+}
+function handleShopItemClick(itemId) {
+  const item = SHOP_ITEMS[itemId];
+
+  if (!item) return;
+
+  const ownedItems = getOwnedShopItems();
+  const equippedItems = getEquippedShopItems();
+
+  const alreadyOwned = Boolean(ownedItems[item.id]);
+
+  if (alreadyOwned) {
+    equippedItems[item.category] = item.id;
+
+    saveEquippedShopItems(equippedItems);
+    renderAdvancedShop();
+
+    if (item.category === "character" && player) {
+      player.color = getEquippedCharacterColor();
+    }
+
+    showShopMessage(`${item.name} equipado.`);
+    return;
+  }
+
+  if (item.currency === "gems") {
+    const gems = getTotalGems();
+
+    if (gems < item.price) {
+      showShopMessage(`Gemas insuficientes para comprar ${item.name}.`);
+      return;
+    }
+
+    saveTotalGems(gems - item.price);
+  } else {
+    const coins = getTotalCoins();
+
+    if (coins < item.price) {
+      showShopMessage(`Coins insuficientes para comprar ${item.name}.`);
+      return;
+    }
+
+    saveTotalCoins(coins - item.price);
+  }
+
+  ownedItems[item.id] = true;
+  equippedItems[item.category] = item.id;
+
+  saveOwnedShopItems(ownedItems);
+  saveEquippedShopItems(equippedItems);
+
+  if (item.category === "character" && player) {
+    player.color = getEquippedCharacterColor();
+  }
+
+  updateMenuCoins();
+  renderAdvancedShop();
+
+  showShopMessage(`Você comprou e equipou ${item.name}.`);
+}
 // Movimento do jogador
 function updatePlayer() {
   let dx = 0;
@@ -1744,7 +2928,7 @@ let dy = 0;
 
 // No PC, usa teclado.
 // No celular, usa joystick.
-const isMobile = window.innerWidth <= 900;
+const isMobile = isMobileLayout();
 
 if (isMobile) {
   dx = joystick.x;
@@ -1763,9 +2947,6 @@ if (isMobile) {
     dy /= length;
   }
 
-const nextX = player.x + dx * player.speed;
-const nextY = player.y + dy * player.speed;
-
 moveEntityWithCollision(player, dx * player.speed, dy * player.speed);
 pushEntityOutOfObstacles(player);
 
@@ -1773,7 +2954,8 @@ pushEntityOutOfObstacles(player);
   const distFromZoneCenter = Math.hypot(player.x - safeZone.x, player.y - safeZone.y);
 
   if (distFromZoneCenter > safeZone.radius) {
-  applyDamageToPlayer(ZONE_DAMAGE_PLAYER);
+  const mode = getCurrentGameMode();
+  applyDamageToPlayer(ZONE_DAMAGE_PLAYER * mode.zoneDamageMultiplier);
 }
 
   if (player.health <= 0) {
@@ -1912,6 +3094,170 @@ function hasLineOfSight(fromX, fromY, toX, toY) {
 
   return true;
 }
+// Cria efeito visual quando o jogador elimina um bot.
+function createEliminationEffect(x, y) {
+  const selectedEffect = getEquippedEliminationEffect();
+
+  let particleCount = 10;
+  let baseColor = "#e5e7eb";
+  let secondaryColor = "#ffffff";
+  let maxSpeed = 2.4;
+  let maxLife = 32;
+  let sizeMin = 3;
+  let sizeMax = 7;
+  let ring = false;
+
+  if (selectedEffect === "green_burst") {
+    particleCount = 16;
+    baseColor = "#22c55e";
+    secondaryColor = "#bbf7d0";
+    maxSpeed = 3.2;
+    maxLife = 38;
+    sizeMin = 3;
+    sizeMax = 8;
+    ring = true;
+  }
+
+  if (selectedEffect === "gold_spark") {
+    particleCount = 20;
+    baseColor = "#facc15";
+    secondaryColor = "#fef3c7";
+    maxSpeed = 3.6;
+    maxLife = 42;
+    sizeMin = 2;
+    sizeMax = 7;
+    ring = true;
+  }
+
+  if (selectedEffect === "explosion") {
+    particleCount = 26;
+    baseColor = "#fb923c";
+    secondaryColor = "#ef4444";
+    maxSpeed = 4.4;
+    maxLife = 46;
+    sizeMin = 4;
+    sizeMax = 10;
+    ring = true;
+  }
+
+  // Anel inicial do impacto.
+  if (ring) {
+    eliminationEffects.push({
+      type: "ring",
+      x,
+      y,
+      radius: 8,
+      maxRadius: selectedEffect === "explosion" ? 56 : 42,
+      life: 22,
+      maxLife: 22,
+      color: baseColor,
+    });
+  }
+
+  // Partículas que saem para todos os lados.
+  for (let i = 0; i < particleCount; i++) {
+    const angle = randomBetween(0, Math.PI * 2);
+    const speed = randomBetween(0.8, maxSpeed);
+    const color = Math.random() > 0.5 ? baseColor : secondaryColor;
+
+    eliminationEffects.push({
+      type: "particle",
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: randomBetween(sizeMin, sizeMax),
+      life: randomBetween(maxLife * 0.65, maxLife),
+      maxLife,
+      color,
+    });
+  }
+
+  // Pequeno flash central para todos os efeitos.
+  eliminationEffects.push({
+    type: "flash",
+    x,
+    y,
+    radius: selectedEffect === "explosion" ? 28 : 20,
+    life: 10,
+    maxLife: 10,
+    color: secondaryColor,
+  });
+}
+// Atualiza partículas dos efeitos de eliminação.
+function updateEliminationEffects() {
+  eliminationEffects.forEach((effect) => {
+    effect.life--;
+
+    if (effect.type === "particle") {
+      effect.x += effect.vx;
+      effect.y += effect.vy;
+
+      // Desacelera suavemente.
+      effect.vx *= 0.96;
+      effect.vy *= 0.96;
+
+      // Leve queda visual, como gravidade.
+      effect.vy += 0.025;
+    }
+
+    if (effect.type === "ring") {
+      const progress = 1 - effect.life / effect.maxLife;
+      effect.radius = 8 + (effect.maxRadius - 8) * progress;
+    }
+  });
+  
+  eliminationEffects = eliminationEffects.filter((effect) => {
+    return effect.life > 0;
+  });
+}
+// Desenha efeitos visuais de eliminação.
+function drawEliminationEffects() {
+  eliminationEffects.forEach((effect) => {
+    const screenX = effect.x - camera.x;
+    const screenY = effect.y - camera.y;
+
+    const alpha = clamp(effect.life / effect.maxLife, 0, 1);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (effect.type === "particle") {
+      ctx.fillStyle = effect.color;
+      ctx.shadowColor = effect.color;
+      ctx.shadowBlur = 12;
+
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, effect.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (effect.type === "ring") {
+      ctx.strokeStyle = effect.color;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = effect.color;
+      ctx.shadowBlur = 18;
+
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, effect.radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    if (effect.type === "flash") {
+      const flashRadius = effect.radius * alpha;
+
+      ctx.fillStyle = effect.color;
+      ctx.shadowColor = effect.color;
+      ctx.shadowBlur = 24;
+
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, flashRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  });
+}
 // Atualiza bots
 function updateBots() {
   bots.forEach((bot) => {
@@ -1975,20 +3321,27 @@ function updateBots() {
     const distFromZoneCenter = Math.hypot(bot.x - safeZone.x, bot.y - safeZone.y);
 
     if (distFromZoneCenter > safeZone.radius) {
-      bot.health -= ZONE_DAMAGE_BOT;
-    }
+  const mode = getCurrentGameMode();
+  bot.health -= ZONE_DAMAGE_BOT * mode.zoneDamageMultiplier;
+}
   });
 
   // Remove bots mortos
   bots = bots.filter((bot) => {
-    if (bot.health <= 0) {
+  if (bot.health <= 0) {
+    // Só conta kill e cria efeito se o jogador realmente causou dano nesse bot.
+    if (bot.lastHitByPlayer) {
+      createEliminationEffect(bot.x, bot.y);
+
       registerPlayerKill();
       kills++;
-      return false;
     }
 
-    return true;
-  });
+    return false;
+  }
+
+  return true;
+});
 
   // Se todos os bots morreram, jogador vence
   if (bots.length === 0 && gameRunning) {
@@ -2055,12 +3408,18 @@ function updateBullets() {
     // Tiro do jogador acerta bot
     if (bullet.owner === player) {
       bots.forEach((bot) => {
-        if (distance(bullet, bot) < bullet.radius + bot.radius) {
-          bot.health -= bullet.damage;
-          registerPlayerDamage(bullet.damage);
-          bullet.life = 0;
-        }
-      });
+  if (bullet.life <= 0) return;
+
+  if (distance(bullet, bot) < bullet.radius + bot.radius) {
+    bot.health -= bullet.damage;
+
+  // Marca que esse bot foi atingido pelo jogador recentemente.
+   bot.lastHitByPlayer = true;
+
+    registerPlayerDamage(bullet.damage);
+    bullet.life = 0;
+  }
+});
     }
 
     // Tiro dos bots acerta jogador
@@ -2133,11 +3492,21 @@ function updateSafeZone() {
 
 // Atualiza câmera
 function updateCamera() {
-  camera.x = player.x - canvas.width / 2;
-  camera.y = player.y - canvas.height / 2;
+  const viewportWidth = getViewportWidth();
+  const viewportHeight = getViewportHeight();
 
-  camera.x = clamp(camera.x, 0, WORLD_WIDTH - canvas.width);
-  camera.y = clamp(camera.y, 0, WORLD_HEIGHT - canvas.height);
+  if (isMobileLayout()) {
+  // No mobile, deixa o jogador um pouco mais abaixo da tela.
+  // Assim o usuário enxerga melhor a frente do personagem.
+  camera.x = player.x - viewportWidth / 2;
+  camera.y = player.y - viewportHeight * 0.58;
+} else {
+  camera.x = player.x - viewportWidth / 2;
+  camera.y = player.y - viewportHeight / 2;
+}
+
+  camera.x = clamp(camera.x, 0, Math.max(0, WORLD_WIDTH - viewportWidth));
+  camera.y = clamp(camera.y, 0, Math.max(0, WORLD_HEIGHT - viewportHeight));
 
   updateMouseWorldPosition();
   updateMobileAimPosition();
@@ -2163,16 +3532,29 @@ ammoText.textContent = player.reloading
   const zonePercent = Math.floor((safeZone.radius / 760) * 100);
   zoneText.textContent = `${Math.max(0, zonePercent)}%`;
   difficultyText.textContent = getSelectedDifficulty().name;
+  
+  if (gameModeText) {
+  const mode = getCurrentGameMode();
+  gameModeText.textContent = mode.name;
+}
+
+  if (mapText) {
+   const map = currentMap || MAPS[DEFAULT_MAP_ID];
+   mapText.textContent = `${map.icon || ""} ${map.name}`;
+}
 }
 
 /// Desenha o fundo principal do mapa.
 function drawMap() {
-  // Fundo base de grama
-  ctx.fillStyle = "#14532d";
+  const map = currentMap || MAPS[DEFAULT_MAP_ID];
+
+  // Fundo base do cenário.
+  ctx.fillStyle = map.groundColor;
   ctx.fillRect(-camera.x, -camera.y, WORLD_WIDTH, WORLD_HEIGHT);
 
-  // Variação de cor em grandes áreas para não parecer tudo chapado
-  ctx.fillStyle = "rgba(22, 101, 52, 0.35)";
+  // Variação de cor em grandes áreas para não parecer tudo chapado.
+  ctx.fillStyle = map.groundVariationColor;
+
   for (let i = 0; i < 12; i++) {
     const x = ((i * 379) % WORLD_WIDTH) - camera.x;
     const y = ((i * 211) % WORLD_HEIGHT) - camera.y;
@@ -2182,8 +3564,8 @@ function drawMap() {
     ctx.fill();
   }
 
-  // Grade bem suave apenas para dar sensação de terreno
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.025)";
+  // Grade bem suave apenas para dar sensação de terreno.
+  ctx.strokeStyle = map.gridColor;
   ctx.lineWidth = 1;
 
   for (let x = 0; x < WORLD_WIDTH; x += 120) {
@@ -2201,10 +3583,181 @@ function drawMap() {
   }
 }
 
+// Desenha detalhes especiais de cada mapa.
+// Esses detalhes são apenas visuais e não têm colisão.
+function drawMapSpecialDetails() {
+  const map = currentMap || MAPS[DEFAULT_MAP_ID];
+
+  // =========================
+  // CIDADE - ruas e quadras
+  // =========================
+  if (map.id === "city") {
+    ctx.fillStyle = "rgba(15, 23, 42, 0.38)";
+
+    // Ruas verticais
+    for (let x = 260; x < WORLD_WIDTH; x += 420) {
+      ctx.fillRect(x - camera.x, -camera.y, 70, WORLD_HEIGHT);
+    }
+
+    // Ruas horizontais
+    for (let y = 220; y < WORLD_HEIGHT; y += 360) {
+      ctx.fillRect(-camera.x, y - camera.y, WORLD_WIDTH, 70);
+    }
+
+    // Linhas amarelas no meio de algumas ruas
+    ctx.strokeStyle = "rgba(250, 204, 21, 0.45)";
+    ctx.lineWidth = 3;
+    ctx.setLineDash([22, 22]);
+
+    for (let x = 295; x < WORLD_WIDTH; x += 420) {
+      ctx.beginPath();
+      ctx.moveTo(x - camera.x, -camera.y);
+      ctx.lineTo(x - camera.x, WORLD_HEIGHT - camera.y);
+      ctx.stroke();
+    }
+
+    for (let y = 255; y < WORLD_HEIGHT; y += 360) {
+      ctx.beginPath();
+      ctx.moveTo(-camera.x, y - camera.y);
+      ctx.lineTo(WORLD_WIDTH - camera.x, y - camera.y);
+      ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+  }
+
+  // =========================
+  // DESERTO - dunas e marcas
+  // =========================
+  if (map.id === "desert") {
+    ctx.strokeStyle = "rgba(120, 53, 15, 0.28)";
+    ctx.lineWidth = 4;
+
+    for (let i = 0; i < 16; i++) {
+      const x = ((i * 337) % WORLD_WIDTH) - camera.x;
+      const y = ((i * 193) % WORLD_HEIGHT) - camera.y;
+
+      ctx.beginPath();
+      ctx.ellipse(x, y, 130, 32, i * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Pequenos pontos de areia
+    ctx.fillStyle = "rgba(254, 243, 199, 0.28)";
+
+    for (let i = 0; i < 90; i++) {
+      const x = ((i * 157) % WORLD_WIDTH) - camera.x;
+      const y = ((i * 89) % WORLD_HEIGHT) - camera.y;
+
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // =========================
+  // NEVE - manchas de gelo
+  // =========================
+  if (map.id === "snow") {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.42)";
+
+    for (let i = 0; i < 18; i++) {
+      const x = ((i * 281) % WORLD_WIDTH) - camera.x;
+      const y = ((i * 173) % WORLD_HEIGHT) - camera.y;
+
+      ctx.beginPath();
+      ctx.ellipse(x, y, 95, 42, i * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Pequenos flocos no chão
+    ctx.fillStyle = "rgba(15, 23, 42, 0.12)";
+
+    for (let i = 0; i < 70; i++) {
+      const x = ((i * 199) % WORLD_WIDTH) - camera.x;
+      const y = ((i * 131) % WORLD_HEIGHT) - camera.y;
+
+      ctx.beginPath();
+      ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // =========================
+  // PÂNTANO - poças e lama
+  // =========================
+  if (map.id === "swamp") {
+    ctx.fillStyle = "rgba(20, 184, 166, 0.22)";
+
+    for (let i = 0; i < 14; i++) {
+      const x = ((i * 311) % WORLD_WIDTH) - camera.x;
+      const y = ((i * 227) % WORLD_HEIGHT) - camera.y;
+
+      ctx.beginPath();
+      ctx.ellipse(x, y, 110, 55, i * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(134, 239, 172, 0.22)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    // Lama escura
+    ctx.fillStyle = "rgba(63, 98, 18, 0.28)";
+
+    for (let i = 0; i < 20; i++) {
+      const x = ((i * 241) % WORLD_WIDTH) - camera.x;
+      const y = ((i * 151) % WORLD_HEIGHT) - camera.y;
+
+      ctx.beginPath();
+      ctx.ellipse(x, y, 70, 28, i * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // =========================
+  // ARENA - marcações de combate
+  // =========================
+  if (map.id === "arena") {
+    const centerX = WORLD_WIDTH / 2 - camera.x;
+    const centerY = WORLD_HEIGHT / 2 - camera.y;
+
+    ctx.strokeStyle = "rgba(251, 113, 133, 0.38)";
+    ctx.lineWidth = 6;
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 360, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(250, 204, 21, 0.35)";
+    ctx.lineWidth = 4;
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 180, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Linhas cruzadas no centro
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX - 480, centerY);
+    ctx.lineTo(centerX + 480, centerY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - 320);
+    ctx.lineTo(centerX, centerY + 320);
+    ctx.stroke();
+  }
+}
+
 // Desenha zona segura
 function drawSafeZone() {
+  const map = currentMap || MAPS[DEFAULT_MAP_ID];
+
   // Área escura total
-  ctx.fillStyle = "rgba(15, 23, 42, 0.36)";
+  ctx.fillStyle = map.darknessColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Recorta visualmente a área segura
@@ -2222,7 +3775,7 @@ function drawSafeZone() {
   ctx.restore();
 
   // Borda da zona
-  ctx.strokeStyle = "#38bdf8";
+  ctx.strokeStyle = map.safeZoneColor;
   ctx.lineWidth = 5;
   ctx.beginPath();
   ctx.arc(
@@ -2236,6 +3789,8 @@ function drawSafeZone() {
 }
 // Desenha detalhes do chão, como gramas e arbustos.
 function drawDecorations() {
+  const map = currentMap || MAPS[DEFAULT_MAP_ID];
+
   decorations.forEach((decoration) => {
     const screenX = decoration.x - camera.x;
     const screenY = decoration.y - camera.y;
@@ -2245,7 +3800,20 @@ function drawDecorations() {
       ctx.translate(screenX, screenY);
       ctx.rotate(decoration.rotation);
 
-      ctx.strokeStyle = "rgba(134, 239, 172, 0.32)";
+      if (map.id === "desert") {
+  ctx.strokeStyle = "rgba(120, 53, 15, 0.32)";
+} else if (map.id === "snow") {
+  ctx.strokeStyle = "rgba(15, 23, 42, 0.16)";
+} else if (map.id === "city") {
+  ctx.strokeStyle = "rgba(203, 213, 225, 0.14)";
+} else if (map.id === "swamp") {
+  ctx.strokeStyle = "rgba(132, 204, 22, 0.36)";
+} else if (map.id === "arena") {
+  ctx.strokeStyle = "rgba(251, 113, 133, 0.22)";
+} else {
+  ctx.strokeStyle = "rgba(134, 239, 172, 0.32)";
+}
+
       ctx.lineWidth = 2;
 
       ctx.beginPath();
@@ -2267,12 +3835,38 @@ function drawDecorations() {
     }
 
     if (decoration.type === "bush") {
-      ctx.fillStyle = "rgba(21, 128, 61, 0.85)";
+      if (map.id === "desert") {
+  ctx.fillStyle = "rgba(146, 64, 14, 0.65)";
+} else if (map.id === "snow") {
+  ctx.fillStyle = "rgba(148, 163, 184, 0.7)";
+} else if (map.id === "city") {
+  ctx.fillStyle = "rgba(71, 85, 105, 0.55)";
+} else if (map.id === "swamp") {
+  ctx.fillStyle = "rgba(22, 101, 52, 0.88)";
+} else if (map.id === "arena") {
+  ctx.fillStyle = "rgba(88, 28, 135, 0.55)";
+} else {
+  ctx.fillStyle = "rgba(21, 128, 61, 0.85)";
+}
+
       ctx.beginPath();
       ctx.arc(screenX, screenY, decoration.radius, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "rgba(34, 197, 94, 0.55)";
+      if (map.id === "desert") {
+  ctx.fillStyle = "rgba(217, 119, 6, 0.42)";
+} else if (map.id === "snow") {
+  ctx.fillStyle = "rgba(226, 232, 240, 0.48)";
+} else if (map.id === "city") {
+  ctx.fillStyle = "rgba(148, 163, 184, 0.32)";
+} else if (map.id === "swamp") {
+  ctx.fillStyle = "rgba(132, 204, 22, 0.46)";
+} else if (map.id === "arena") {
+  ctx.fillStyle = "rgba(236, 72, 153, 0.34)";
+} else {
+  ctx.fillStyle = "rgba(34, 197, 94, 0.55)";
+}
+
       ctx.beginPath();
       ctx.arc(
         screenX - decoration.radius * 0.35,
@@ -2287,7 +3881,9 @@ function drawDecorations() {
 }
 /// Desenha obstáculos: árvores, pedras e casas.
 function drawObstacles() {
-  obstacles.forEach((obstacle) => {
+    const map = currentMap || MAPS[DEFAULT_MAP_ID];
+    
+    obstacles.forEach((obstacle) => {
     const screenX = obstacle.x - camera.x;
     const screenY = obstacle.y - camera.y;
 
@@ -2300,16 +3896,16 @@ function drawObstacles() {
       ctx.fill();
 
       // Tronco
-      ctx.fillStyle = "#78350f";
+      ctx.fillStyle = map.id === "snow" ? "#475569" : "#78350f";
       ctx.fillRect(screenX - 6, screenY + 4, 12, 22);
 
       // Copa
-      ctx.fillStyle = "#166534";
+      ctx.fillStyle = map.id === "snow" ? "#e2e8f0" : map.id === "desert" ? "#92400e" : "#166534";
       ctx.beginPath();
       ctx.arc(screenX, screenY, obstacle.radius, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "#15803d";
+      ctx.fillStyle = map.id === "snow" ? "#f8fafc" : map.id === "desert" ? "#b45309" : "#15803d";
       ctx.beginPath();
       ctx.arc(screenX - obstacle.radius * 0.35, screenY - obstacle.radius * 0.25, obstacle.radius * 0.55, 0, Math.PI * 2);
       ctx.fill();
@@ -2328,12 +3924,12 @@ function drawObstacles() {
       ctx.ellipse(screenX + 3, screenY + 5, obstacle.width / 2, obstacle.height / 2, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "#57534e";
+      ctx.fillStyle = map.id === "snow" ? "#94a3b8" : map.id === "desert" ? "#78716c" : "#57534e";
       ctx.beginPath();
       ctx.ellipse(screenX, screenY, obstacle.width / 2, obstacle.height / 2, 0.2, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "#78716c";
+      ctx.fillStyle = map.id === "snow" ? "#cbd5e1" : map.id === "desert" ? "#a16207" : "#78716c";
       ctx.beginPath();
       ctx.ellipse(screenX - obstacle.width * 0.15, screenY - obstacle.height * 0.18, obstacle.width * 0.22, obstacle.height * 0.16, 0.2, 0, Math.PI * 2);
       ctx.fill();
@@ -2467,7 +4063,8 @@ function drawCharacter(entity, isPlayer = false) {
   // Barra de vida
   const barWidth = 42;
   const barHeight = 6;
-  const healthPercent = clamp(entity.health / (isPlayer ? PLAYER_MAX_HEALTH : 55), 0, 1);
+  const maxHealth = isPlayer ? player.maxHealth : 55;
+  const healthPercent = clamp(entity.health / maxHealth, 0, 1);
 
   ctx.fillStyle = "#7f1d1d";
   ctx.fillRect(screenX - barWidth / 2, screenY - entity.radius - 15, barWidth, barHeight);
@@ -2483,7 +4080,7 @@ function drawCharacter(entity, isPlayer = false) {
   if (isPlayer) {
   // Usa o mesmo ângulo oficial para desenhar o canhão e para atirar.
   const angle = player.aimAngle;
-  const isMobile = window.innerWidth <= 900;
+  const isMobile = isMobileLayout();
 
   const weapon = getCurrentWeapon();
   const barrelLength = weapon.barrelLength;
@@ -2552,8 +4149,8 @@ function drawBullets() {
 function drawMiniMap() {
   if (!miniMapCanvas || !miniMapCtx || !player || !safeZone) return;
 
-  const mapWidth = miniMapCanvas.width;
-  const mapHeight = miniMapCanvas.height;
+  const mapWidth = miniMapCanvas.clientWidth || miniMapCanvas.width;
+  const mapHeight = miniMapCanvas.clientHeight || miniMapCanvas.height;
 
   const scaleX = mapWidth / WORLD_WIDTH;
   const scaleY = mapHeight / WORLD_HEIGHT;
@@ -2619,6 +4216,7 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawMap();
+  drawMapSpecialDetails();
   drawDecorations();
 
   // Obstáculos primeiro, para não esconderem totalmente bots e jogador.
@@ -2630,8 +4228,9 @@ function draw() {
 
   drawCharacter(player, true);
   drawBullets();
-  drawSafeZone();
+  drawEliminationEffects();
 
+  drawSafeZone();
   drawMiniMap();
 }
 
@@ -2644,6 +4243,7 @@ function gameLoop() {
   updateBullets();
   updateLoots();
   updateSafeZone();
+  updateEliminationEffects();
   updateCamera();
   updateHUD();
 
@@ -2718,6 +4318,10 @@ canvas.addEventListener("mouseup", () => {
   mouse.down = false;
 });
 
+canvas.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+});
+
 // Botões do menu
 if (startButton) {
   startButton.addEventListener("click", startGame);
@@ -2766,6 +4370,16 @@ if (menuSoundButton) {
 }
 
 updateSoundButtons();
+function setupAdvancedShop() {
+  shopCategoryButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      currentShopCategory = button.dataset.shopCategory || "character";
+      renderAdvancedShop();
+    });
+  });
+
+  renderAdvancedShop();
+}
 // ===============================
 // JOYSTICK MOBILE
 // ===============================
@@ -2815,8 +4429,9 @@ function updateJoystickFromPointer(event) {
 }
 
 // Começa o controle do joystick.
-joystickArea.addEventListener("pointerdown", (event) => {
-  const isMobile = window.innerWidth <= 900;
+if (joystickArea && joystickBase && joystickStick) {
+  joystickArea.addEventListener("pointerdown", (event) => {
+    const isMobile = isMobileLayout();
 
   if (!isMobile || !gameRunning || gamePaused) return;
 
@@ -2837,42 +4452,43 @@ joystickArea.addEventListener("pointerdown", (event) => {
 
 // Move o joystick.
 joystickArea.addEventListener("pointermove", (event) => {
-  if (!joystick.active) return;
-  if (event.pointerId !== joystick.pointerId) return;
+    if (!joystick.active) return;
+    if (event.pointerId !== joystick.pointerId) return;
 
-  event.preventDefault();
-  event.stopPropagation();
+    event.preventDefault();
+    event.stopPropagation();
 
-  updateJoystickFromPointer(event);
-});
+    updateJoystickFromPointer(event);
+  });
 
 // Solta o joystick.
 joystickArea.addEventListener("pointerup", (event) => {
-  if (event.pointerId !== joystick.pointerId) return;
+    if (event.pointerId !== joystick.pointerId) return;
 
-  event.preventDefault();
-  event.stopPropagation();
+    event.preventDefault();
+    event.stopPropagation();
 
-  resetJoystick();
-});
+    resetJoystick();
+  });
 
 // Cancela o joystick.
 joystickArea.addEventListener("pointercancel", (event) => {
-  if (event.pointerId !== joystick.pointerId) return;
+    if (event.pointerId !== joystick.pointerId) return;
 
-  event.preventDefault();
-  event.stopPropagation();
+    event.preventDefault();
+    event.stopPropagation();
 
-  resetJoystick();
-});
+    resetJoystick();
+  });
+}
 
 // Função usada pelo botão de tiro no celular.
 // Ela mira automaticamente no bot mais próximo.
 function mobileShoot() {
-  if (!gameRunning || gamePaused) return;
+  if (!gameRunning || gamePaused || !player) return;
 
-  // O alvo aqui é só uma referência.
-  // A função shootBullet vai usar player.aimAngle quando o dono for o jogador.
+  updatePlayerAimAngle();
+
   shootBullet(
     player,
     player.x + Math.cos(player.aimAngle) * 250,
@@ -2881,52 +4497,64 @@ function mobileShoot() {
 }
 
 // Botão mobile de tiro
-mobileShootButton.addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  mobileShoot();
-});
+if (mobileShootButton) {
+  mobileShootButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    mobileShoot();
+  });
+}
 
 // Botão mobile de recarregar
 function mobileReload() {
   if (!gameRunning || gamePaused) return;
   reloadWeapon();
 }
+if (mobileReloadButton) {
+  mobileReloadButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    mobileReload();
+  });
+}
 
-mobileReloadButton.addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  mobileReload();
-});
 // Botão mobile de cura
 function mobileHeal() {
   if (!gameRunning || gamePaused) return;
   useMedkit();
 }
+if (mobileHealButton) {
+  mobileHealButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    mobileHeal();
+  });
+}
 
-mobileHealButton.addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  mobileHeal();
-});
 // Botões mobile para trocar de arma
-mobilePistolButton.addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  switchWeapon("pistol");
-});
+if (mobilePistolButton) {
+  mobilePistolButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    switchWeapon("pistol");
+  });
+}
 
-mobileRifleButton.addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  switchWeapon("rifle");
-});
+if (mobileRifleButton) {
+  mobileRifleButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    switchWeapon("rifle");
+  });
+}
 
-mobileShotgunButton.addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  switchWeapon("shotgun");
-});
+if (mobileShotgunButton) {
+  mobileShotgunButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    switchWeapon("shotgun");
+  });
+}
 /// ===============================
 // MIRA MOBILE COM MULTI-TOQUE
 // ===============================
@@ -2948,13 +4576,16 @@ function updateMobileAimFromPointer(event) {
 
 // Começa a controlar a mira no lado direito da tela.
 canvas.addEventListener("pointerdown", (event) => {
-  const isMobile = window.innerWidth <= 900;
+  const isMobile = isMobileLayout();
 
   if (!isMobile || !gameRunning || gamePaused) return;
 
   // O lado esquerdo fica reservado para movimento.
   // O lado direito controla a mira.
-  if (event.clientX < window.innerWidth * 0.42) return;
+  if (event.clientX < getViewportWidth() * 0.42) return;
+
+  event.preventDefault();
+  event.stopPropagation();
 
   mobileAim.active = true;
   mobileAim.pointerId = event.pointerId;
@@ -2966,11 +4597,14 @@ canvas.addEventListener("pointerdown", (event) => {
 
 // Move a mira enquanto o dedo arrasta no lado direito.
 canvas.addEventListener("pointermove", (event) => {
-  const isMobile = window.innerWidth <= 900;
+  const isMobile = isMobileLayout();
 
   if (!isMobile || !gameRunning || gamePaused) return;
   if (!mobileAim.active) return;
   if (event.pointerId !== mobileAim.pointerId) return;
+
+  event.preventDefault();
+  event.stopPropagation();
 
   updateMobileAimFromPointer(event);
 });
@@ -2978,6 +4612,9 @@ canvas.addEventListener("pointermove", (event) => {
 // Solta a mira quando o dedo sai da tela.
 canvas.addEventListener("pointerup", (event) => {
   if (event.pointerId !== mobileAim.pointerId) return;
+
+  event.preventDefault();
+  event.stopPropagation();
 
   mobileAim.active = false;
   mobileAim.pointerId = null;
@@ -2987,14 +4624,16 @@ canvas.addEventListener("pointerup", (event) => {
 canvas.addEventListener("pointercancel", (event) => {
   if (event.pointerId !== mobileAim.pointerId) return;
 
+  event.preventDefault();
+  event.stopPropagation();
+
   mobileAim.active = false;
   mobileAim.pointerId = null;
 });
 // Eventos da loja de skins
 skinCards.forEach((card) => {
   card.addEventListener("click", () => {
-    const skinId = card.dataset.skin;
-    handleSkinClick(skinId);
+    handleSkinClick(card.dataset.skin);
   });
 });
 // Eventos dos botões de dificuldade
@@ -3004,6 +4643,15 @@ difficultyButtons.forEach((button) => {
 
     saveSelectedDifficulty(difficultyId);
     updateDifficultyUI();
+  });
+});
+// clique nos botões de mapa
+mapButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const selectedMapId = button.dataset.map;
+
+    saveSelectedMapId(selectedMapId);
+    updateMapUI();
   });
 });
 // Botão para limpar o ranking local
@@ -3016,6 +4664,14 @@ if (clearRankingButton) {
     clearLocalRanking();
   });
 }
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const selectedModeId = button.dataset.mode;
+
+    saveSelectedGameModeId(selectedModeId);
+    updateGameModeUI();
+  });
+});
 // Retorna estatísticas permanentes das conquistas.
 function getAchievementStats() {
   const savedStats = localStorage.getItem(ACHIEVEMENTS_STATS_KEY);
@@ -3254,10 +4910,12 @@ function setupMenuTabs() {
 window.addEventListener("load", () => {
   setupGameOverButtons();
   setupMenuTabs();
+  setupAdvancedShop();
   renderAchievements();
+  checkAchievements(false); // Verifica conquistas já completas, mas sem mostrar toast ao carregar a página.
+  updateMapUI();
+  updateGameModeUI();
 
-  // Verifica conquistas já completas, mas sem mostrar toast ao carregar a página.
-  checkAchievements(false);
 });
 // Atualiza menu e loja quando o jogo abre.
 updateMenuCoins();
