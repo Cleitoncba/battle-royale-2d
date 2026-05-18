@@ -131,6 +131,7 @@ const MAX_CANVAS_DPR = 2;
 let gameRunning = false;
 let gamePaused = false;
 let animationId = null;
+let mobileShootHeld = false;
 
 // Chave usada para salvar o mapa escolhido.
 const MAP_STORAGE_KEY = "battleRoyale2dSelectedMap";
@@ -405,6 +406,8 @@ let obstacles = [];
 let loots = [];
 let decorations = [];
 let eliminationEffects = [];
+let muzzleFlashes = [];
+let damageTexts = [];
 
 // ===============================
 // SISTEMA DE ÁUDIO SIMPLES
@@ -760,6 +763,7 @@ function resetMobileInputState() {
   resetJoystick();
   mobileAim.active = false;
   mobileAim.pointerId = null;
+  mobileShootHeld = false;
 }
 
 // Ajusta o canvas ao tamanho visível da tela e mantém nitidez em telas de alta densidade.
@@ -2460,6 +2464,8 @@ function startGame() {
 
   bullets = [];
   eliminationEffects = [];
+  muzzleFlashes = [];
+  damageTexts = [];
 
   if (animationId) {
     cancelAnimationFrame(animationId);
@@ -2686,6 +2692,93 @@ function reloadWeapon() {
   }, player.reloadTime);
 }
 
+// Cria um pequeno flash visual na ponta da arma.
+function createMuzzleFlash(x, y, angle, color = "#facc15") {
+  muzzleFlashes.push({
+    x,
+    y,
+    angle,
+    color,
+    life: 8,
+    maxLife: 8,
+    radius: 8,
+  });
+}
+
+// Atualiza os flashes de disparo.
+function updateMuzzleFlashes() {
+  muzzleFlashes.forEach((flash) => {
+    flash.life--;
+    flash.radius += 0.8;
+  });
+
+  muzzleFlashes = muzzleFlashes.filter((flash) => flash.life > 0);
+}
+
+// Desenha os flashes de disparo.
+function drawMuzzleFlashes() {
+  muzzleFlashes.forEach((flash) => {
+    const screenX = flash.x - camera.x;
+    const screenY = flash.y - camera.y;
+    const alpha = clamp(flash.life / flash.maxLife, 0, 1);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = flash.color;
+    ctx.shadowColor = flash.color;
+    ctx.shadowBlur = 18;
+
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, flash.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  });
+}
+// Mostra o número de dano subindo quando acerta um bot.
+function createDamageText(x, y, amount) {
+  damageTexts.push({
+    x,
+    y,
+    text: `-${Math.floor(amount)}`,
+    life: 42,
+    maxLife: 42,
+    vy: -0.55,
+  });
+}
+
+// Atualiza os textos de dano.
+function updateDamageTexts() {
+  damageTexts.forEach((damageText) => {
+    damageText.y += damageText.vy;
+    damageText.life--;
+  });
+
+  damageTexts = damageTexts.filter((damageText) => damageText.life > 0);
+}
+
+// Desenha os textos de dano.
+function drawDamageTexts() {
+  damageTexts.forEach((damageText) => {
+    const screenX = damageText.x - camera.x;
+    const screenY = damageText.y - camera.y;
+    const alpha = clamp(damageText.life / damageText.maxLife, 0, 1);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "#fef3c7";
+    ctx.strokeStyle = "rgba(15, 23, 42, 0.85)";
+    ctx.lineWidth = 3;
+    ctx.font = "bold 15px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.strokeText(damageText.text, screenX, screenY);
+    ctx.fillText(damageText.text, screenX, screenY);
+
+    ctx.restore();
+  });
+}
 // Cria um tiro
 function shootBullet(owner, targetX, targetY) {
   const now = Date.now();
@@ -2693,21 +2786,29 @@ function shootBullet(owner, targetX, targetY) {
   let weapon = null;
 
   if (owner === player) {
-    weapon = getCurrentWeapon();
+  weapon = getCurrentWeapon();
 
-    if (player.reloading) return;
+  if (player.reloading) return;
 
-    if (player.ammoByWeapon[player.currentWeapon] <= 0) {
-      reloadWeapon();
-      return;
-    }
+  if (player.ammoByWeapon[player.currentWeapon] <= 0) {
+    reloadWeapon();
+    return;
+  }
 
-    if (now - player.lastShot < weapon.fireRate) return;
+  if (now - player.lastShot < weapon.fireRate) return;
 
-    player.lastShot = now;
-    player.ammoByWeapon[player.currentWeapon]--;
-    
-    playShootSound();
+  player.lastShot = now;
+  player.ammoByWeapon[player.currentWeapon]--;
+
+  playShootSound();
+
+  // Efeito visual na ponta da arma.
+  createMuzzleFlash(
+    player.x + Math.cos(player.aimAngle) * weapon.barrelLength,
+    player.y + Math.sin(player.aimAngle) * weapon.barrelLength,
+    player.aimAngle,
+    getEquippedBulletColor()
+  );
 
   } else {
     if (now - owner.lastShot < owner.fireRate) return;
@@ -3261,6 +3362,11 @@ function drawEliminationEffects() {
 // Atualiza bots
 function updateBots() {
   bots.forEach((bot) => {
+
+  if (bot.hitFlash && bot.hitFlash > 0) {
+    bot.hitFlash--;
+}
+
     pushEntityOutOfObstacles(bot);
     
     updateBotDecision(bot);
@@ -3410,15 +3516,21 @@ function updateBullets() {
       bots.forEach((bot) => {
   if (bullet.life <= 0) return;
 
-  if (distance(bullet, bot) < bullet.radius + bot.radius) {
-    bot.health -= bullet.damage;
+if (distance(bullet, bot) < bullet.radius + bot.radius) {
+  bot.health -= bullet.damage;
 
   // Marca que esse bot foi atingido pelo jogador recentemente.
-   bot.lastHitByPlayer = true;
+  bot.lastHitByPlayer = true;
 
-    registerPlayerDamage(bullet.damage);
-    bullet.life = 0;
-  }
+  // Faz o bot piscar rapidamente ao tomar dano.
+  bot.hitFlash = 8;
+
+  // Mostra número de dano.
+  createDamageText(bot.x, bot.y - bot.radius - 10, bullet.damage);
+
+  registerPlayerDamage(bullet.damage);
+  bullet.life = 0;
+}
 });
     }
 
@@ -4056,7 +4168,7 @@ function drawCharacter(entity, isPlayer = false) {
   const screenY = entity.y - camera.y;
 
   // Corpo
-  ctx.fillStyle = entity.color;
+  ctx.fillStyle = !isPlayer && entity.hitFlash > 0 ? "#ffffff" : entity.color;
   ctx.beginPath();
   ctx.arc(screenX, screenY, entity.radius, 0, Math.PI * 2);
   ctx.fill();
@@ -4137,18 +4249,42 @@ function drawCharacter(entity, isPlayer = false) {
 }
 
 // Desenha tiros
+// Desenha tiros com pequeno rastro visual.
 function drawBullets() {
   bullets.forEach((bullet) => {
-    ctx.fillStyle = bullet.color;
+    const screenX = bullet.x - camera.x;
+    const screenY = bullet.y - camera.y;
+
+    // Rastro atrás da bala.
+    ctx.save();
+    ctx.strokeStyle = bullet.color;
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = bullet.radius * 1.4;
+    ctx.lineCap = "round";
+    ctx.shadowColor = bullet.color;
+    ctx.shadowBlur = 10;
+
     ctx.beginPath();
-    ctx.arc(
-      bullet.x - camera.x,
-      bullet.y - camera.y,
-      bullet.radius,
-      0,
-      Math.PI * 2
+    ctx.moveTo(
+      screenX - bullet.vx * 14,
+      screenY - bullet.vy * 14
     );
+    ctx.lineTo(screenX, screenY);
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Bala principal.
+    ctx.save();
+    ctx.fillStyle = bullet.color;
+    ctx.shadowColor = bullet.color;
+    ctx.shadowBlur = 12;
+
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, bullet.radius, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.restore();
   });
 }
 // Desenha o mini mapa no canto da tela.
@@ -4233,8 +4369,10 @@ function draw() {
   bots.forEach((bot) => drawCharacter(bot, false));
 
   drawCharacter(player, true);
+  drawMuzzleFlashes();
   drawBullets();
   drawEliminationEffects();
+  drawDamageTexts();
 
   drawSafeZone();
   drawMiniMap();
@@ -4250,8 +4388,18 @@ function gameLoop() {
   updateLoots();
   updateSafeZone();
   updateEliminationEffects();
+  updateMuzzleFlashes();
+  updateDamageTexts();
   updateCamera();
   updateHUD();
+
+  if (!isMobileLayout() && mouse.down && player) {
+  shootBullet(player, mouse.worldX, mouse.worldY);
+}
+
+if (isMobileLayout() && mobileShootHeld && player) {
+  mobileShoot();
+}
 
   draw();
 
@@ -4507,7 +4655,27 @@ if (mobileShootButton) {
   mobileShootButton.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     event.stopPropagation();
+
+    mobileShootHeld = true;
     mobileShoot();
+  });
+
+  mobileShootButton.addEventListener("pointerup", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    mobileShootHeld = false;
+  });
+
+  mobileShootButton.addEventListener("pointercancel", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    mobileShootHeld = false;
+  });
+
+  mobileShootButton.addEventListener("pointerleave", () => {
+    mobileShootHeld = false;
   });
 }
 
