@@ -3700,6 +3700,9 @@ function drawMap() {
 function drawMapSpecialDetails() {
   const map = currentMap || MAPS[DEFAULT_MAP_ID];
 
+  // Usado para reduzir detalhes visuais no celular.
+  const mobile = isMobileLayout();
+
   // =========================
   // CIDADE - ruas e quadras
   // =========================
@@ -3865,16 +3868,26 @@ function drawMapSpecialDetails() {
 }
 
 // Desenha zona segura
+// Desenha zona segura
+// Desenha zona segura
 function drawSafeZone() {
   const map = currentMap || MAPS[DEFAULT_MAP_ID];
 
+  const viewportWidth = getViewportWidth();
+  const viewportHeight = getViewportHeight();
+
+  // Garante que o canvas está no modo normal antes de começar.
+  ctx.globalCompositeOperation = "source-over";
+
+  ctx.save();
+
   // Área escura total
   ctx.fillStyle = map.darknessColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, viewportWidth, viewportHeight);
 
-  // Recorta visualmente a área segura
-  ctx.save();
+  // Recorta visualmente a área segura.
   ctx.globalCompositeOperation = "destination-out";
+
   ctx.beginPath();
   ctx.arc(
     safeZone.x - camera.x,
@@ -3884,11 +3897,19 @@ function drawSafeZone() {
     Math.PI * 2
   );
   ctx.fill();
+
   ctx.restore();
 
+  // IMPORTANTE:
+  // Garante que tudo desenhado depois da zona volte ao modo normal.
+  ctx.globalCompositeOperation = "source-over";
+
   // Borda da zona
+  ctx.save();
+
   ctx.strokeStyle = map.safeZoneColor;
   ctx.lineWidth = 5;
+
   ctx.beginPath();
   ctx.arc(
     safeZone.x - camera.x,
@@ -3898,6 +3919,11 @@ function drawSafeZone() {
     Math.PI * 2
   );
   ctx.stroke();
+
+  ctx.restore();
+
+  // Segurança final.
+  ctx.globalCompositeOperation = "source-over";
 }
 // Desenha detalhes do chão, como gramas e arbustos.
 function drawDecorations() {
@@ -4354,28 +4380,46 @@ function drawMiniMap() {
   miniMapCtx.stroke();
 }
 // Desenha todos os elementos
+// Desenha todos os elementos
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Garante que o canvas começa cada frame no modo normal.
+  ctx.globalCompositeOperation = "source-over";
+
+  ctx.clearRect(0, 0, getViewportWidth(), getViewportHeight());
 
   drawMap();
+
+  ctx.globalCompositeOperation = "source-over";
   drawMapSpecialDetails();
+
+  ctx.globalCompositeOperation = "source-over";
   drawDecorations();
 
-  // Obstáculos primeiro, para não esconderem totalmente bots e jogador.
-  drawObstacles();
+  // Zona antes dos personagens, para não cobrir player e bots.
+  ctx.globalCompositeOperation = "source-over";
+  drawSafeZone();
 
+  // Segurança: volta para desenho normal antes de desenhar entidades.
+  ctx.globalCompositeOperation = "source-over";
+
+  drawObstacles();
   drawLoots();
 
   bots.forEach((bot) => drawCharacter(bot, false));
 
-  drawCharacter(player, true);
+  if (player) {
+    drawCharacter(player, true);
+  }
+
   drawMuzzleFlashes();
   drawBullets();
   drawEliminationEffects();
   drawDamageTexts();
 
-  drawSafeZone();
   drawMiniMap();
+
+  // Segurança final para o próximo frame.
+  ctx.globalCompositeOperation = "source-over";
 }
 
 // Loop principal do jogo
