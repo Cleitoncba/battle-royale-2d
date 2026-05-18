@@ -408,6 +408,7 @@ let decorations = [];
 let eliminationEffects = [];
 let muzzleFlashes = [];
 let damageTexts = [];
+let hitEffects = [];
 
 // ===============================
 // SISTEMA DE ÁUDIO SIMPLES
@@ -761,9 +762,12 @@ function isMobileLayout() {
 
 function resetMobileInputState() {
   resetJoystick();
+
   mobileAim.active = false;
   mobileAim.pointerId = null;
+
   mobileShootHeld = false;
+  mouse.down = false;
 }
 
 // Ajusta o canvas ao tamanho visível da tela e mantém nitidez em telas de alta densidade.
@@ -1860,6 +1864,9 @@ maxAmmo: WEAPONS.pistol.maxAmmo,
     // Ângulo oficial da mira/arma.
     // 0 significa apontando para a direita.
     aimAngle: 0,
+
+    // Recuo visual da arma ao atirar.
+    weaponRecoil: 0,
   };
 }
 
@@ -1918,6 +1925,58 @@ function createBots() {
     });
   }
 }
+
+// Cria pequenas partículas quando um tiro acerta um bot.
+function createHitEffect(x, y, color = "#fef3c7") {
+  for (let i = 0; i < 6; i++) {
+    const angle = randomBetween(0, Math.PI * 2);
+    const speed = randomBetween(0.8, 2.2);
+
+    hitEffects.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: randomBetween(2, 4),
+      color,
+      life: 16,
+      maxLife: 16,
+    });
+  }
+}
+
+function updateHitEffects() {
+  hitEffects.forEach((effect) => {
+    effect.x += effect.vx;
+    effect.y += effect.vy;
+    effect.vx *= 0.9;
+    effect.vy *= 0.9;
+    effect.life--;
+  });
+
+  hitEffects = hitEffects.filter((effect) => effect.life > 0);
+}
+
+function drawHitEffects() {
+  hitEffects.forEach((effect) => {
+    const screenX = effect.x - camera.x;
+    const screenY = effect.y - camera.y;
+    const alpha = clamp(effect.life / effect.maxLife, 0, 1);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = effect.color;
+    ctx.shadowColor = effect.color;
+    ctx.shadowBlur = 10;
+
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, effect.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  });
+}
+
 // Cria itens de loot espalhados pelo mapa.
 // O jogador pega ao encostar neles.
 function createLoots() {
@@ -2390,6 +2449,8 @@ function pauseGame() {
   pauseScreen.classList.add("active");
   hideMiniMap();
   resetMobileInputState();
+  mouse.down = false;
+  mobileShootHeld = false;
 
   if (animationId) {
     cancelAnimationFrame(animationId);
@@ -2444,6 +2505,10 @@ function startGame() {
 
   showMiniMap();
   resetMobileInputState();
+
+  mouse.down = false;
+  mobileShootHeld = false;
+
   resizeCanvas();
 
   gameRunning = true;
@@ -2466,6 +2531,7 @@ function startGame() {
   eliminationEffects = [];
   muzzleFlashes = [];
   damageTexts = [];
+  hitEffects = [];
 
   if (animationId) {
     cancelAnimationFrame(animationId);
@@ -2802,6 +2868,9 @@ function shootBullet(owner, targetX, targetY) {
 
   playShootSound();
 
+  // Pequeno recuo visual da arma.
+  player.weaponRecoil = player.currentWeapon === "shotgun" ? 8 : player.currentWeapon === "rifle" ? 4 : 5;
+
   // Efeito visual na ponta da arma.
   createMuzzleFlash(
     player.x + Math.cos(player.aimAngle) * weapon.barrelLength,
@@ -3057,6 +3126,15 @@ pushEntityOutOfObstacles(player);
   if (distFromZoneCenter > safeZone.radius) {
   const mode = getCurrentGameMode();
   applyDamageToPlayer(ZONE_DAMAGE_PLAYER * mode.zoneDamageMultiplier);
+}
+
+// Reduz o recuo da arma suavemente.
+if (player.weaponRecoil > 0) {
+  player.weaponRecoil *= 0.72;
+
+  if (player.weaponRecoil < 0.2) {
+    player.weaponRecoil = 0;
+  }
 }
 
   if (player.health <= 0) {
@@ -3527,6 +3605,7 @@ if (distance(bullet, bot) < bullet.radius + bot.radius) {
 
   // Mostra número de dano.
   createDamageText(bot.x, bot.y - bot.radius - 10, bullet.damage);
+  createHitEffect(bot.x, bot.y, bullet.color);
 
   registerPlayerDamage(bullet.damage);
   bullet.life = 0;
@@ -4227,8 +4306,9 @@ function drawCharacter(entity, isPlayer = false) {
   const isMobile = isMobileLayout();
 
   const weapon = getCurrentWeapon();
-  const barrelLength = weapon.barrelLength;
-  const barrelStart = 8;
+  const recoil = player.weaponRecoil || 0;
+  const barrelLength = weapon.barrelLength - recoil;
+  const barrelStart = 8 - recoil * 0.25;
 
   // Canhão/arma
   ctx.strokeStyle = "#e0f2fe";
@@ -4413,6 +4493,7 @@ function draw() {
 
   drawMuzzleFlashes();
   drawBullets();
+  drawHitEffects();
   drawEliminationEffects();
   drawDamageTexts();
 
@@ -4434,14 +4515,17 @@ function gameLoop() {
   updateEliminationEffects();
   updateMuzzleFlashes();
   updateDamageTexts();
+  updateHitEffects();
   updateCamera();
   updateHUD();
 
-  if (!isMobileLayout() && mouse.down && player) {
+  // Tiro automático no PC somente se o mouse estiver realmente pressionado.
+if (!isMobileLayout() && mouse.down && gameRunning && !gamePaused && player) {
   shootBullet(player, mouse.worldX, mouse.worldY);
 }
 
-if (isMobileLayout() && mobileShootHeld && player) {
+// Tiro automático no mobile somente enquanto o botão de tiro estiver pressionado.
+if (isMobileLayout() && mobileShootHeld && gameRunning && !gamePaused && player) {
   mobileShoot();
 }
 
@@ -4700,6 +4784,8 @@ if (mobileShootButton) {
     event.preventDefault();
     event.stopPropagation();
 
+    if (!gameRunning || gamePaused || !player) return;
+
     mobileShootHeld = true;
     mobileShoot();
   });
@@ -4719,6 +4805,10 @@ if (mobileShootButton) {
   });
 
   mobileShootButton.addEventListener("pointerleave", () => {
+    mobileShootHeld = false;
+  });
+
+  mobileShootButton.addEventListener("lostpointercapture", () => {
     mobileShootHeld = false;
   });
 }
@@ -4879,6 +4969,26 @@ canvas.addEventListener("pointercancel", (event) => {
   mobileAim.active = false;
   mobileAim.pointerId = null;
 });
+
+// Segurança: se o dedo/mouse soltar fora do botão ou fora da tela,
+// o jogo para de atirar.
+window.addEventListener("pointerup", () => {
+  mobileShootHeld = false;
+});
+
+window.addEventListener("pointercancel", () => {
+  mobileShootHeld = false;
+});
+
+window.addEventListener("mouseup", () => {
+  mouse.down = false;
+});
+
+window.addEventListener("blur", () => {
+  mobileShootHeld = false;
+  mouse.down = false;
+});
+
 // Eventos da loja de skins
 skinCards.forEach((card) => {
   card.addEventListener("click", () => {
