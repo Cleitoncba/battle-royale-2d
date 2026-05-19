@@ -5,6 +5,7 @@
 // Pega elementos do HTML
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+const mobilePauseButton = document.getElementById("mobilePauseButton");
 
 let miniMapCanvas = document.getElementById("miniMapCanvas");
 let miniMapCtx = null;
@@ -605,6 +606,30 @@ const LOOT_COUNT = 26;
 const MEDKIT_LOOT_AMOUNT = 1;
 const AMMO_LOOT_AMOUNT = 8;
 const SHIELD_LOOT_AMOUNT = 25;
+const BIG_MEDKIT_HEAL_AMOUNT = 60;
+const SPEED_BOOST_DURATION = 4500;
+const SPEED_BOOST_MULTIPLIER = 1.35;
+const DAMAGE_BOOST_DURATION = 5000;
+const DAMAGE_BOOST_MULTIPLIER = 1.25;
+
+const LOOT_RARITIES = {
+  common: {
+    name: "Comum",
+    color: "#e5e7eb",
+  },
+  rare: {
+    name: "Raro",
+    color: "#38bdf8",
+  },
+  epic: {
+    name: "Épico",
+    color: "#a855f7",
+  },
+  legendary: {
+    name: "Lendário",
+    color: "#facc15",
+  },
+};
 const COINS_PER_KILL = 10;
 const VICTORY_BONUS = 50;
 const DEFEAT_PENALTY = 5;
@@ -1835,6 +1860,9 @@ function createPlayer() {
     y: WORLD_HEIGHT / 2,
     radius: 18,
     speed: 2.6,
+    baseSpeed: 2.6,
+    speedBoostUntil: 0,
+    damageBoostUntil: 0,
     health: modeHealth,
     maxHealth: modeHealth,
     currentWeapon: "pistol",
@@ -1917,11 +1945,17 @@ function createBots() {
       color: "#ef4444",
 
       state: "wander",
-      wanderAngle: randomBetween(0, Math.PI * 2),
-      nextDecisionTime: Date.now() + randomBetween(500, 1600),
-      stuckTimer: 0,
-      lastX: botX,
-      lastY: botY,
+wanderAngle: randomBetween(0, Math.PI * 2),
+nextDecisionTime: Date.now() + randomBetween(500, 1600),
+stuckTimer: 0,
+lastX: botX,
+lastY: botY,
+
+// Novos controles de IA
+strafeDirection: Math.random() > 0.5 ? 1 : -1,
+nextStrafeChange: Date.now() + randomBetween(900, 1800),
+retreating: false,
+dodgeCooldown: 0,
     });
   }
 }
@@ -1982,24 +2016,37 @@ function drawHitEffects() {
 function createLoots() {
   loots = [];
 
-  let lootTypes = ["medkit", "ammo", "shield", "rifle", "shotgun"];
-
-if (getCurrentGameMode().id === "highLoot") {
-  lootTypes = [
+  let lootTypes = [
     "medkit",
     "ammo",
-    "ammo",
-    "shield",
     "shield",
     "rifle",
     "shotgun",
+    "bigMedkit",
+    "speedBoost",
+    "damageBoost",
   ];
-}
-  const mode = getCurrentGameMode();
 
+  if (getCurrentGameMode().id === "highLoot") {
+    lootTypes = [
+      "medkit",
+      "medkit",
+      "ammo",
+      "ammo",
+      "shield",
+      "shield",
+      "rifle",
+      "shotgun",
+      "bigMedkit",
+      "speedBoost",
+      "damageBoost",
+    ];
+  }
+
+  const mode = getCurrentGameMode();
   const totalLoots = Math.floor(LOOT_COUNT * mode.lootMultiplier);
 
-for (let i = 0; i < totalLoots; i++) {
+  for (let i = 0; i < totalLoots; i++) {
     const type = lootTypes[Math.floor(Math.random() * lootTypes.length)];
 
     let lootX = WORLD_WIDTH / 2;
@@ -2007,11 +2054,18 @@ for (let i = 0; i < totalLoots; i++) {
     let attempts = 0;
     let foundFreePosition = false;
 
-    while (!foundFreePosition && attempts < 150) {
+    while (!foundFreePosition && attempts < 180) {
       lootX = randomBetween(80, WORLD_WIDTH - 80);
       lootY = randomBetween(80, WORLD_HEIGHT - 80);
 
-      foundFreePosition = !collidesWithAnyObstacle(lootX, lootY, 22);
+      const tooCloseToOtherLoot = loots.some((existingLoot) => {
+        return Math.hypot(lootX - existingLoot.x, lootY - existingLoot.y) < 85;
+      });
+
+      foundFreePosition =
+        !collidesWithAnyObstacle(lootX, lootY, 22) &&
+        !tooCloseToOtherLoot;
+
       attempts++;
     }
 
@@ -2019,15 +2073,33 @@ for (let i = 0; i < totalLoots; i++) {
       continue;
     }
 
-    loots.push({
-      x: lootX,
-      y: lootY,
-      radius: 14,
-      type,
-      pulse: randomBetween(0, Math.PI * 2),
-    });
+    loots.push(createLootItem(lootX, lootY, type));
   }
 }
+
+// Retorna a raridade visual de cada tipo de loot.
+function getLootRarity(type) {
+  if (type === "rifle" || type === "shotgun") return "epic";
+  if (type === "bigMedkit" || type === "damageBoost") return "rare";
+  if (type === "speedBoost") return "rare";
+  if (type === "shield") return "rare";
+
+  return "common";
+}
+
+// Cria um objeto de loot padronizado.
+function createLootItem(x, y, type, fromDrop = false) {
+  return {
+    x,
+    y,
+    radius: fromDrop ? 16 : 14,
+    type,
+    rarity: getLootRarity(type),
+    pulse: randomBetween(0, Math.PI * 2),
+    fromDrop,
+  };
+}
+
 // Cria elementos decorativos do mapa.
 // Esses elementos não bloqueiam o jogador, são apenas visuais.
 function createDecorations() {
@@ -2478,6 +2550,7 @@ function backToMenu() {
   }
   
   hideMiniMap();
+  hideMobilePauseButton();
   resetMobileInputState();
 
   pauseScreen.classList.remove("active");
@@ -2504,6 +2577,7 @@ function startGame() {
   pauseScreen.classList.remove("active");
 
   showMiniMap();
+  showMobilePauseButton();
   resetMobileInputState();
 
   mouse.down = false;
@@ -2902,7 +2976,12 @@ function shootBullet(owner, targetX, targetY) {
       y: owner.y + Math.sin(angle) * barrelLength,
       radius: owner === player && player.currentWeapon === "shotgun" ? 4 : 5,
       speed: owner === player ? weapon.bulletSpeed : 4.5,
-      damage: owner === player ? weapon.damage : BOT_BULLET_DAMAGE,
+      damage:
+      owner === player && player.damageBoostUntil > Date.now()
+      ? weapon.damage * DAMAGE_BOOST_MULTIPLIER
+      : owner === player
+      ? weapon.damage
+      : BOT_BULLET_DAMAGE,
       vx: Math.cos(angle),
       vy: Math.sin(angle),
       owner,
@@ -3117,6 +3196,14 @@ if (isMobile) {
     dy /= length;
   }
 
+const now = Date.now();
+
+const currentPlayerSpeed =
+  player.speedBoostUntil > now
+    ? player.baseSpeed * SPEED_BOOST_MULTIPLIER
+    : player.baseSpeed;
+
+player.speed = currentPlayerSpeed;
 moveEntityWithCollision(player, dx * player.speed, dy * player.speed);
 pushEntityOutOfObstacles(player);
 
@@ -3165,15 +3252,30 @@ function updateBotDecision(bot) {
     selectedDifficulty.id === "easy" ? 560 :
     700;
 
-  if (outsideZone) {
-    bot.state = "escapeZone";
-  } else if (distToPlayer < attackDistance) {
-    bot.state = "attack";
-  } else if (distToPlayer < chaseDistance) {
-    bot.state = "chase";
-  } else {
-    bot.state = "wander";
-  }
+ // Se estiver fora ou perto demais da borda da zona, prioridade é escapar.
+if (outsideZone) {
+  bot.state = "escapeZone";
+}
+
+// Se estiver com pouca vida e perto do jogador, tenta recuar.
+else if (bot.health <= 22 && distToPlayer < 520) {
+  bot.state = "retreat";
+}
+
+// Se o jogador estiver perto, ataca.
+else if (distToPlayer < attackDistance) {
+  bot.state = "attack";
+}
+
+// Se o jogador estiver em média distância, persegue.
+else if (distToPlayer < chaseDistance) {
+  bot.state = "chase";
+}
+
+// Caso contrário, anda pelo mapa.
+else {
+  bot.state = "wander";
+}
 
   // Muda ângulo aleatório de tempos em tempos.
   if (bot.state === "wander") {
@@ -3437,12 +3539,120 @@ function drawEliminationEffects() {
     ctx.restore();
   });
 }
+
+// Verifica se existe uma bala do jogador vindo perto do bot.
+// Isso permite o bot tentar desviar.
+function findDangerousBulletForBot(bot) {
+  let dangerousBullet = null;
+  let closestDistance = Infinity;
+
+  bullets.forEach((bullet) => {
+    // Só considera tiros do jogador.
+    if (bullet.owner !== player) return;
+
+    const distanceToBullet = Math.hypot(bot.x - bullet.x, bot.y - bullet.y);
+
+    if (distanceToBullet < 95 && distanceToBullet < closestDistance) {
+      closestDistance = distanceToBullet;
+      dangerousBullet = bullet;
+    }
+  });
+
+  return dangerousBullet;
+}
+
+// Faz o bot tentar desviar de uma bala próxima.
+function dodgeBullet(bot, bullet) {
+  if (!bullet) return false;
+
+  if (bot.dodgeCooldown > 0) return false;
+
+  const selectedDifficulty = getSelectedDifficulty();
+
+  // No fácil, bots desviam menos.
+  // No difícil, desviam mais.
+  const dodgeChance =
+    selectedDifficulty.id === "hard" ? 0.75 :
+    selectedDifficulty.id === "easy" ? 0.25 :
+    0.45;
+
+  if (Math.random() > dodgeChance) {
+    bot.dodgeCooldown = 30;
+    return false;
+  }
+
+  // Desvia para o lado da trajetória da bala.
+  const bulletAngle = Math.atan2(bullet.vy, bullet.vx);
+  const dodgeAngle = bulletAngle + Math.PI / 2 * bot.strafeDirection;
+
+  moveBotSmart(bot, dodgeAngle, selectedDifficulty.id === "hard" ? 1.45 : 1.15);
+
+  bot.dodgeCooldown = selectedDifficulty.id === "hard" ? 18 : 28;
+
+  return true;
+}
+
+// Faz um bot derrotado ter chance de dropar item.
+function dropLootFromBot(x, y) {
+  const selectedDifficulty = getSelectedDifficulty();
+
+  let dropChance =
+    selectedDifficulty.id === "hard" ? 0.62 :
+    selectedDifficulty.id === "easy" ? 0.48 :
+    0.55;
+
+  if (getCurrentGameMode().id === "highLoot") {
+    dropChance += 0.18;
+  }
+
+  if (Math.random() > dropChance) return;
+
+  const possibleDrops = [
+    "ammo",
+    "ammo",
+    "medkit",
+    "shield",
+    "bigMedkit",
+    "speedBoost",
+    "damageBoost",
+  ];
+
+  // Chance menor de dropar armas.
+  if (Math.random() < 0.18) {
+    possibleDrops.push("rifle", "shotgun");
+  }
+
+  const type = possibleDrops[Math.floor(Math.random() * possibleDrops.length)];
+
+  const dropX = clamp(x + randomBetween(-28, 28), 40, WORLD_WIDTH - 40);
+  const dropY = clamp(y + randomBetween(-28, 28), 40, WORLD_HEIGHT - 40);
+
+  if (collidesWithAnyObstacle(dropX, dropY, 18)) return;
+
+  loots.push(createLootItem(dropX, dropY, type, true));
+}
+
 // Atualiza bots
 function updateBots() {
   bots.forEach((bot) => {
 
   if (bot.hitFlash && bot.hitFlash > 0) {
     bot.hitFlash--;
+}
+
+if (bot.dodgeCooldown > 0) {
+  bot.dodgeCooldown--;
+}
+
+const dangerousBullet = findDangerousBulletForBot(bot);
+
+if (dangerousBullet) {
+  const dodged = dodgeBullet(bot, dangerousBullet);
+
+  if (dodged) {
+    bot.lastX = bot.x;
+    bot.lastY = bot.y;
+  }
 }
 
     pushEntityOutOfObstacles(bot);
@@ -3466,36 +3676,97 @@ function updateBots() {
   }
 }
 
+  // Recuar quando está com pouca vida.
+if (bot.state === "retreat") {
+  const retreatAngle = angleToPlayer + Math.PI;
+
+  // Recuar, mas ainda tentando não sair da zona segura.
+  const distFromZoneCenter = Math.hypot(bot.x - safeZone.x, bot.y - safeZone.y);
+
+  if (distFromZoneCenter > safeZone.radius - 180) {
+    moveBotSmart(bot, angleToZoneCenter, 1.25);
+  } else {
+    moveBotSmart(bot, retreatAngle, 1.15);
+  }
+
+  // Se tiver linha de visão, ainda atira enquanto recua.
+  if (
+    distToPlayer < 420 &&
+    hasLineOfSight(bot.x, bot.y, player.x, player.y)
+  ) {
+    shootBullet(bot, player.x, player.y);
+  }
+}
+
     // Persegue o jogador.
-    if (bot.state === "chase") {
-      moveBotSmart(bot, angleToPlayer, 1);
-    }
+   if (bot.state === "chase") {
+  const selectedDifficulty = getSelectedDifficulty();
+
+  const chaseSpeed =
+    selectedDifficulty.id === "hard" ? 1.18 :
+    selectedDifficulty.id === "easy" ? 0.82 :
+    1;
+
+  moveBotSmart(bot, angleToPlayer, chaseSpeed);
+}
 
     // Ataca: para ou anda devagar, mantendo distância.
-    if (bot.state === "attack") {
-      if (distToPlayer > 240) {
-        moveBotSmart(bot, angleToPlayer, 0.55);
-      }
+    // Ataca: anda de lado, mantém distância e atira.
+if (bot.state === "attack") {
+  const now = Date.now();
 
-      if (distToPlayer < 150) {
-        // Se estiver perto demais, recua.
-        moveBotSmart(bot, angleToPlayer + Math.PI, 0.75);
-      }
+  // Muda direção lateral de tempos em tempos.
+  if (now > bot.nextStrafeChange) {
+    bot.strafeDirection *= -1;
+    bot.nextStrafeChange = now + randomBetween(700, 1600);
+  }
 
-      // Atira no jogador.
-      if (
-  bot.state !== "escapeZone" &&
-  distToPlayer < 430 &&
-  hasLineOfSight(bot.x, bot.y, player.x, player.y)
-) {
-  shootBullet(bot, player.x, player.y);
+  const selectedDifficulty = getSelectedDifficulty();
+
+  // Movimento lateral ao redor do jogador.
+  const strafeAngle = angleToPlayer + Math.PI / 2 * bot.strafeDirection;
+
+  if (distToPlayer > 280) {
+    // Chega mais perto se estiver longe.
+    moveBotSmart(bot, angleToPlayer, 0.65);
+  } else if (distToPlayer < 150) {
+    // Recuar se estiver perto demais.
+    moveBotSmart(bot, angleToPlayer + Math.PI, 0.85);
+  } else {
+    // Em distância boa, anda de lado.
+    const strafeSpeed =
+      selectedDifficulty.id === "hard" ? 0.95 :
+      selectedDifficulty.id === "easy" ? 0.45 :
+      0.7;
+
+    moveBotSmart(bot, strafeAngle, strafeSpeed);
+  }
+
+  // Atira no jogador se tiver visão.
+  const attackRange =
+    selectedDifficulty.id === "hard" ? 500 :
+    selectedDifficulty.id === "easy" ? 350 :
+    430;
+
+  if (
+    distToPlayer < attackRange &&
+    hasLineOfSight(bot.x, bot.y, player.x, player.y)
+  ) {
+    shootBullet(bot, player.x, player.y);
+  }
 }
-    }
 
     // Vagueia pelo mapa.
     if (bot.state === "wander") {
-      moveBotSmart(bot, bot.wanderAngle, 0.55);
-    }
+  const selectedDifficulty = getSelectedDifficulty();
+
+  const wanderSpeed =
+    selectedDifficulty.id === "hard" ? 0.72 :
+    selectedDifficulty.id === "easy" ? 0.45 :
+    0.55;
+
+  moveBotSmart(bot, bot.wanderAngle, wanderSpeed);
+}
 
     // Garante que não saia do mundo.
     bot.x = clamp(bot.x, bot.radius, WORLD_WIDTH - bot.radius);
@@ -3510,12 +3781,12 @@ function updateBots() {
 }
   });
 
-  // Remove bots mortos
-  bots = bots.filter((bot) => {
+bots = bots.filter((bot) => {
   if (bot.health <= 0) {
     // Só conta kill e cria efeito se o jogador realmente causou dano nesse bot.
     if (bot.lastHitByPlayer) {
       createEliminationEffect(bot.x, bot.y);
+      dropLootFromBot(bot.x, bot.y);
 
       registerPlayerKill();
       kills++;
@@ -3541,6 +3812,10 @@ function collectLoot(loot) {
     player.medkits += MEDKIT_LOOT_AMOUNT;
   }
 
+  if (loot.type === "bigMedkit") {
+    player.health = Math.min(player.maxHealth, player.health + BIG_MEDKIT_HEAL_AMOUNT);
+  }
+
   if (loot.type === "ammo") {
     const weapon = getCurrentWeapon();
 
@@ -3564,6 +3839,14 @@ function collectLoot(loot) {
     player.weaponsOwned.shotgun = true;
     player.ammoByWeapon.shotgun = WEAPONS.shotgun.maxAmmo;
     switchWeapon("shotgun");
+  }
+
+  if (loot.type === "speedBoost") {
+    player.speedBoostUntil = Date.now() + SPEED_BOOST_DURATION;
+  }
+
+  if (loot.type === "damageBoost") {
+    player.damageBoostUntil = Date.now() + DAMAGE_BOOST_DURATION;
   }
 
   playLootSound();
@@ -3719,6 +4002,14 @@ ammoText.textContent = player.reloading
   botsText.textContent = bots.length;
   medkitsText.textContent = player.medkits;
   shieldText.textContent = Math.floor(player.shield);
+
+  const now = Date.now();
+
+if (player.speedBoostUntil > now || player.damageBoostUntil > now) {
+  weaponText.textContent = `${weapon.name} ${
+    player.damageBoostUntil > now ? "🔥" : ""
+  }${player.speedBoostUntil > now ? " ⚡" : ""}`;
+}
 
   const zonePercent = Math.floor((safeZone.radius / 760) * 100);
   zoneText.textContent = `${Math.max(0, zonePercent)}%`;
@@ -4221,6 +4512,8 @@ function drawLoots() {
     const screenX = loot.x - camera.x;
     const screenY = loot.y - camera.y;
 
+    const rarity = LOOT_RARITIES[loot.rarity] || LOOT_RARITIES.common;
+
     // Pulso visual simples
     const pulseSize = Math.sin(Date.now() / 250 + loot.pulse) * 2;
 
@@ -4232,6 +4525,11 @@ function drawLoots() {
       icon = "+";
     }
 
+    if (loot.type === "bigMedkit") {
+      color = "#16a34a";
+      icon = "++";
+    }
+
     if (loot.type === "ammo") {
       color = "#facc15";
       icon = "•";
@@ -4241,30 +4539,64 @@ function drawLoots() {
       color = "#38bdf8";
       icon = "S";
     }
+
     if (loot.type === "rifle") {
       color = "#a855f7";
       icon = "R";
-}
+    }
 
     if (loot.type === "shotgun") {
-    color = "#f97316";
-    icon = "SG";
-}
+      color = "#f97316";
+      icon = "SG";
+    }
 
+    if (loot.type === "speedBoost") {
+      color = "#06b6d4";
+      icon = "»";
+    }
+
+    if (loot.type === "damageBoost") {
+      color = "#ef4444";
+      icon = "D";
+    }
+
+    // Aura da raridade.
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = rarity.color;
+    ctx.shadowColor = rarity.color;
+    ctx.shadowBlur = loot.fromDrop ? 20 : 14;
+
+    ctx.beginPath();
+    ctx.arc(screenX, screenY, loot.radius + 8 + pulseSize, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Corpo principal.
+    ctx.save();
     ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 10;
+
     ctx.beginPath();
     ctx.arc(screenX, screenY, loot.radius + pulseSize, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(255,255,255,0.85)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = rarity.color;
+    ctx.lineWidth = loot.rarity === "common" ? 2 : 3;
     ctx.stroke();
 
     ctx.fillStyle = "#0f172a";
-    ctx.font = loot.type === "shotgun" ? "bold 11px Arial" : "bold 15px Arial";
+    ctx.font =
+      loot.type === "shotgun" || loot.type === "bigMedkit"
+        ? "bold 10px Arial"
+        : "bold 15px Arial";
+
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(icon, screenX, screenY + 1);
+
+    ctx.restore();
   });
 }
 // Desenha personagem ou bot
